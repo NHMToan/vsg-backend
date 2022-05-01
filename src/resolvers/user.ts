@@ -38,17 +38,9 @@ export class UserResolver {
     @Arg("registerInput")
     registerInput: RegisterInput
   ): Promise<UserMutationResponse> {
-    const { username, password, invitedCode } = registerInput;
+    const { email, password } = registerInput;
 
-    if (!invitedCode || invitedCode !== process.env.INVITED_CODE) {
-      return {
-        code: 400,
-        success: false,
-        message: "Pls Input invited code wrongly!",
-      };
-    }
-
-    const existingUser = await User.findOne({ username });
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       return {
@@ -61,7 +53,7 @@ export class UserResolver {
     const hashedPassword = await argon2.hash(password);
 
     const newUser = User.create({
-      username,
+      email,
       password: hashedPassword,
     });
 
@@ -78,7 +70,7 @@ export class UserResolver {
   @Mutation((_return) => UserMutationResponse)
   @UseMiddleware(checkAuth)
   async updateUser(
-    @Arg("updateUserInput") { name }: UpdateUserInput,
+    @Arg("updateUserInput") { firstName, lastName }: UpdateUserInput,
     @Ctx() { user }: Context
   ): Promise<UserMutationResponse> {
     const existingUser = await User.findOne(user.userId);
@@ -90,7 +82,8 @@ export class UserResolver {
         message: "User not found",
       };
 
-    existingUser.name = name;
+    existingUser.firstName = firstName;
+    existingUser.lastName = lastName;
 
     await existingUser.save();
 
@@ -104,11 +97,11 @@ export class UserResolver {
 
   @Mutation((_return) => UserMutationResponse)
   async login(
-    @Arg("loginInput") { username, password }: LoginInput,
+    @Arg("loginInput") { email, password }: LoginInput,
     @Ctx() { res }: Context
   ): Promise<UserMutationResponse> {
     try {
-      const existingUser = await User.findOne({ username });
+      const existingUser = await User.findOne({ email });
 
       if (!existingUser) {
         return {

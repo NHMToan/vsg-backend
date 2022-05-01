@@ -17,14 +17,18 @@ export class User extends BaseEntity {
 
   @Field()
   @Column({ unique: true })
-  username!: string;
+  email!: string;
 
   @Column()
   password!: string;
 
-  @Field({ nullable: true })
-  @Column({ nullable: true, default: "" })
-  name!: string;
+  @Field()
+  @Column({ nullable: true })
+  firstName: string;
+
+  @Field()
+  @Column()
+  lastName!: string;
 
   @OneToMany(() => Post, (post) => post.user)
   posts: Post[];
