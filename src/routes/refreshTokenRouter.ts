@@ -24,10 +24,7 @@ router.get("/", async (req, res) => {
 
     const existingUser = await User.findOne(decodedUser.userId);
 
-    if (
-      !existingUser ||
-      existingUser.tokenVersion !== decodedUser.tokenVersion
-    ) {
+    if (!existingUser) {
       console.log("Existing user", existingUser);
       console.log("Decoded user", decodedUser);
       return res.sendStatus(401);

@@ -7,13 +7,12 @@ export const createToken = (type: "accessToken" | "refreshToken", user: User) =>
   sign(
     {
       userId: user.id,
-      ...(type === "refreshToken" ? { tokenVersion: user.tokenVersion } : {}),
     },
     type === "accessToken"
       ? (process.env.ACCESS_TOKEN_SECRET as Secret)
       : (process.env.REFRESH_TOKEN_SECRET as Secret),
     {
-      expiresIn: type === "accessToken" ? "2h" : "7d",
+      expiresIn: type === "accessToken" ? "2d" : "7d",
     }
   );
 

@@ -9,5 +9,8 @@ export class RegisterInput {
   password: string;
 
   @Field()
-  name: string;
+  lastName: string;
+
+  @Field({ nullable: true })
+  firstName?: string;
 }

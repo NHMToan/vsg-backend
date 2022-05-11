@@ -27,8 +27,7 @@ export class UserResolver {
 
   @Query((_return) => User, { nullable: true })
   @UseMiddleware(checkAuth)
-  async me(@Ctx() { user, req }: Context): Promise<User | undefined | null> {
-    if (!req.session.accessToken) return null;
+  async me(@Ctx() { user }: Context): Promise<User | undefined | null> {
     const foundUser = await User.findOne(user.userId);
     return foundUser;
   }
@@ -36,9 +35,10 @@ export class UserResolver {
   @Mutation((_return) => UserMutationResponse)
   async register(
     @Arg("registerInput")
-    registerInput: RegisterInput
+    registerInput: RegisterInput,
+    @Ctx() { res }: Context
   ): Promise<UserMutationResponse> {
-    const { email, password } = registerInput;
+    const { email, password, lastName, firstName } = registerInput;
 
     const existingUser = await User.findOne({ email });
 
@@ -46,7 +46,7 @@ export class UserResolver {
       return {
         code: 400,
         success: false,
-        message: "Duplicated username",
+        message: "Email is already existing, try with another email",
       };
     }
 
@@ -55,15 +55,22 @@ export class UserResolver {
     const newUser = User.create({
       email,
       password: hashedPassword,
+      lastName,
+      firstName,
     });
 
+    const accessToken = createToken("accessToken", newUser);
+
     await newUser.save();
+
+    sendRefreshToken(res, newUser);
 
     return {
       code: 200,
       success: true,
       message: "User registration successful",
       user: newUser,
+      accessToken,
     };
   }
 
@@ -158,8 +165,6 @@ export class UserResolver {
         success: false,
       };
     }
-
-    existingUser.tokenVersion += 1;
 
     await existingUser.save();
 
