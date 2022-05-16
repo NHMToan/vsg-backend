@@ -5,7 +5,8 @@ import { buildDataLoaders } from "../utils/dataLoaders";
 import { UserAuthPayload } from "./User/UserAuthPayload";
 export interface Context {
   req: Request & {
-    session: Session & Partial<SessionData> & { accessToken?: string };
+    session: Session &
+      Partial<SessionData> & { accessToken?: string; userId?: string };
   };
   res: Response;
   user: UserAuthPayload;

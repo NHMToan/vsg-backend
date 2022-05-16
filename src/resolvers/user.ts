@@ -2,13 +2,16 @@ import argon2 from "argon2";
 import {
   Arg,
   Ctx,
+  FieldResolver,
   ID,
   Mutation,
   Query,
   Resolver,
+  Root,
   UseMiddleware,
 } from "type-graphql";
-import { __prod__ } from "../constants";
+import { FORGET_PASSWORD_PREFIX, __prod__ } from "../constants";
+import { Profile } from "../entities/Profile";
 import { User } from "../entities/User";
 import { checkAuth } from "../middleware/checkAuth";
 import { Context } from "../types/Context";
@@ -16,10 +19,31 @@ import { LoginInput } from "../types/User/LoginInput";
 import { RegisterInput } from "../types/User/RegisterInput";
 import { UpdateUserInput } from "../types/User/UpdateUserInput";
 import { UserMutationResponse } from "../types/User/UserMutationResponse";
+import { generateRandomNumber } from "../utils";
 import { createToken, sendRefreshToken } from "../utils/auth";
-
-@Resolver()
+import { emailContent } from "../utils/forgotPasswordEmail";
+import { sendEmail } from "../utils/sendEmail";
+@Resolver((_of) => User)
 export class UserResolver {
+  @FieldResolver((_return) => String)
+  async avatar(@Root() root: User) {
+    const foundProfile = await Profile.findOne(root?.profileId);
+
+    return foundProfile?.avatar;
+  }
+
+  @FieldResolver((_return) => String)
+  async displayName(@Root() root: User) {
+    const foundProfile = await Profile.findOne(root?.profileId);
+
+    return foundProfile?.displayName;
+  }
+
+  @FieldResolver((_return) => Profile)
+  async profile(@Root() root: User) {
+    return await Profile.findOne(root.profileId);
+  }
+
   @Query((_return) => [User])
   async users(): Promise<User[]> {
     return await User.find();
@@ -30,6 +54,35 @@ export class UserResolver {
   async me(@Ctx() { user }: Context): Promise<User | undefined | null> {
     const foundUser = await User.findOne(user.userId);
     return foundUser;
+  }
+
+  @Query((_return) => Profile, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async myProfile(
+    @Ctx() { user }: Context
+  ): Promise<Profile | undefined | null> {
+    const foundUser = await User.findOne(user.userId);
+
+    const foundProfile = await Profile.findOne(foundUser?.profileId);
+
+    return foundProfile;
+  }
+
+  @Query((_return) => Profile, { nullable: true })
+  async getProfile(
+    @Arg("uuid", (_type) => ID) uuid: string
+  ): Promise<Profile | undefined> {
+    try {
+      const user = await User.findOne(uuid);
+      if (user) {
+        return user.profile;
+      } else {
+        throw "Ca";
+      }
+    } catch (error) {
+      console.log(error);
+      return undefined;
+    }
   }
 
   @Mutation((_return) => UserMutationResponse)
@@ -50,6 +103,9 @@ export class UserResolver {
       };
     }
 
+    const profile = Profile.create();
+    await profile.save();
+
     const hashedPassword = await argon2.hash(password);
 
     const newUser = User.create({
@@ -58,6 +114,8 @@ export class UserResolver {
       lastName,
       firstName,
     });
+
+    newUser.profile = profile;
 
     const accessToken = createToken("accessToken", newUser);
 
@@ -71,6 +129,87 @@ export class UserResolver {
       message: "User registration successful",
       user: newUser,
       accessToken,
+    };
+  }
+
+  @Mutation(() => UserMutationResponse)
+  async forgotPassword(@Arg("email") email: string, @Ctx() { res }: Context) {
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return {
+        code: 400,
+        success: false,
+        message: "Email is not existing!",
+      };
+    }
+    const code = generateRandomNumber(6);
+
+    res.cookie(FORGET_PASSWORD_PREFIX + code, user.id, {
+      httpOnly: true, // JS front end cannot access the cookie
+      secure: __prod__, // cookie only works in https
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24,
+    });
+
+    await sendEmail(email, emailContent(code));
+    return {
+      code: 200,
+      success: true,
+      message: "Request to reset password is sent!",
+    };
+  }
+
+  @Mutation(() => UserMutationResponse)
+  async changePassword(
+    @Arg("code") code: string,
+    @Arg("newPassword") newPassword: string,
+    @Ctx() { res, req }: Context
+  ): Promise<UserMutationResponse> {
+    if (newPassword.length <= 2) {
+      return {
+        code: 400,
+        success: false,
+        message: "Length must be greater than 2",
+      };
+    }
+
+    const key = FORGET_PASSWORD_PREFIX + code;
+    const userId = req.cookies[key];
+
+    if (!userId) {
+      return {
+        code: 400,
+        success: false,
+        message: "Token is expired",
+      };
+    }
+    const user = await User.findOne(userId);
+    if (!user) {
+      return {
+        code: 400,
+        success: false,
+        message: "User is no longer exists",
+      };
+    }
+
+    const hashedPassword = await argon2.hash(newPassword);
+    await User.update(
+      { id: userId },
+      {
+        password: hashedPassword,
+      }
+    );
+
+    res.clearCookie(key, {
+      httpOnly: true,
+      secure: __prod__,
+      sameSite: "lax",
+    });
+
+    return {
+      code: 200,
+      success: true,
+      message: "Password is changed successfully!",
     };
   }
 

@@ -1,16 +1,35 @@
-import { Field, ID, InputType } from "type-graphql";
+import { FileUpload, GraphQLUpload } from "graphql-upload";
+import { Field, InputType } from "type-graphql";
 
 @InputType()
 export class UpdatePostInput {
-  @Field((_type) => ID)
-  id: number;
-
   @Field()
   title: string;
 
   @Field()
-  text: string;
+  content: string;
+
+  @Field((_) => GraphQLUpload, { nullable: true })
+  coverFile: FileUpload;
+
+  @Field({ nullable: true })
+  description!: string;
+
+  @Field((_) => [String], { nullable: true })
+  tags!: string[];
+
+  @Field({ nullable: true })
+  metaDescription!: string;
+
+  @Field((_) => [String], { nullable: true })
+  metaKeywords!: string[];
+
+  @Field({ nullable: true })
+  metaTitle!: string;
 
   @Field()
-  category: string;
+  publish!: boolean;
+
+  @Field()
+  comments!: boolean;
 }

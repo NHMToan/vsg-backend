@@ -14,8 +14,8 @@ import { User } from "./User";
 @Entity()
 export class Post extends BaseEntity {
   @Field((_type) => ID)
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
   @Field()
   @Column()
@@ -23,19 +23,47 @@ export class Post extends BaseEntity {
 
   @Field()
   @Column()
-  userId!: number;
+  content!: string;
+
+  @Field()
+  @Column()
+  cover!: string;
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  description: string;
+
+  @Field((_) => [String], { nullable: true })
+  @Column("text", { nullable: true, array: true })
+  tags: string[];
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  metaDescription: string;
+
+  @Field((_) => [String], { nullable: true })
+  @Column("text", { nullable: true, array: true })
+  metaKeywords: string[];
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  metaTitle: string;
+
+  @Field()
+  @Column()
+  publish: boolean;
+
+  @Field()
+  @Column()
+  comments: boolean;
+
+  @Field()
+  @Column()
+  authorId!: string;
 
   @Field((_type) => User)
   @ManyToOne(() => User, (user) => user.posts)
-  user: User;
-
-  @Field()
-  @Column()
-  text!: string;
-
-  @Field()
-  @Column()
-  category!: string;
+  author!: User;
 
   @Field()
   @CreateDateColumn({ type: "timestamptz" })

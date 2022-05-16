@@ -7,6 +7,7 @@ import { ApolloServer } from "apollo-server-express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
+import { graphqlUploadExpress } from "graphql-upload";
 import { createServer } from "http";
 import path from "path";
 import "reflect-metadata";
@@ -14,13 +15,16 @@ import { buildSchema } from "type-graphql";
 import { createConnection } from "typeorm";
 import { __prod__ } from "./constants";
 import { Post } from "./entities/Post";
+import { Profile } from "./entities/Profile";
 import { User } from "./entities/User";
 import { GreetingResolver } from "./resolvers/greeting";
 import { PostResolver } from "./resolvers/post";
+import { ProfileResolver } from "./resolvers/profile";
 import { UserResolver } from "./resolvers/user";
 import refreshTokenRouter from "./routes/refreshTokenRouter";
 import { Context } from "./types/Context";
 import { buildDataLoaders } from "./utils/dataLoaders";
+
 const main = async () => {
   const connection = await createConnection({
     type: "postgres",
@@ -41,7 +45,7 @@ const main = async () => {
           synchronize: true,
         }),
     logging: true,
-    entities: [User, Post],
+    entities: [User, Post, Profile],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
   if (__prod__) await connection.runMigrations();
@@ -65,7 +69,12 @@ const main = async () => {
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       validate: false,
-      resolvers: [GreetingResolver, UserResolver, PostResolver],
+      resolvers: [
+        GreetingResolver,
+        UserResolver,
+        PostResolver,
+        ProfileResolver,
+      ],
     }),
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
@@ -83,6 +92,8 @@ const main = async () => {
   });
 
   await apolloServer.start();
+
+  app.use(graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 10 }));
 
   apolloServer.applyMiddleware({
     app,

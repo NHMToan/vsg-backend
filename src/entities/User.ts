@@ -3,17 +3,20 @@ import {
   BaseEntity,
   Column,
   Entity,
+  JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Post } from "./Post";
+import { Profile } from "./Profile";
 
 @ObjectType()
 @Entity()
 export class User extends BaseEntity {
   @Field((_type) => ID)
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
   @Field()
   @Column({ unique: true })
@@ -30,6 +33,21 @@ export class User extends BaseEntity {
   @Column()
   lastName!: string;
 
-  @OneToMany(() => Post, (post) => post.user)
+  @Field()
+  @Column({ nullable: true, default: true })
+  isPublic: boolean;
+
+  @Field()
+  @Column({ nullable: true, default: "user" })
+  role: string;
+
+  @OneToMany(() => Post, (post) => post.author)
   posts: Post[];
+
+  @Column({ nullable: true })
+  profileId: number;
+
+  @OneToOne(() => Profile)
+  @JoinColumn()
+  profile: Profile;
 }

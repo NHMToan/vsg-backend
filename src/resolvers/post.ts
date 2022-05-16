@@ -14,39 +14,74 @@ import { FindManyOptions } from "typeorm";
 import { Post } from "../entities/Post";
 import { User } from "../entities/User";
 import { checkAuth } from "../middleware/checkAuth";
+import { S3Service } from "../services/uploader";
 import { Context } from "../types/Context";
 import { CreatePostInput } from "../types/Post/CreatePostInput";
 import { PostMutationResponse } from "../types/Post/PostMutationResponse";
 import { Posts } from "../types/Post/Posts";
 import { UpdatePostInput } from "../types/Post/UpdatePostInput";
 
-@Resolver((_of) => Post)
+@Resolver(Post)
 export class PostResolver {
   @FieldResolver((_return) => String)
   textSnippet(@Root() root: Post) {
-    return root.text.slice(0, 50);
+    return root.content.slice(0, 50);
   }
 
   @FieldResolver((_return) => User)
-  async user(@Root() root: Post) {
-    return await User.findOne(root.userId);
-    // return await userLoader.load(root.userId);
+  async author(@Root() root: Post) {
+    return await User.findOne(root.authorId);
   }
 
   @Mutation((_return) => PostMutationResponse)
   @UseMiddleware(checkAuth)
   async createPost(
-    @Arg("createPostInput") { title, text, category }: CreatePostInput,
+    @Arg("createPostInput")
+    {
+      title,
+      content,
+      description,
+      tags,
+      coverFile,
+      metaDescription,
+      metaKeywords,
+      metaTitle,
+      publish,
+      comments,
+    }: CreatePostInput,
     @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
     try {
       const existingUser = await User.findOne(user.userId);
 
+      const uploader = new S3Service();
+      let cover;
+
+      if (coverFile) {
+        try {
+          const avatarRes: any = await uploader.uploadFile(coverFile);
+          cover = avatarRes.Location;
+        } catch (error) {
+          return {
+            code: 400,
+            success: false,
+            message: error,
+          };
+        }
+      }
+
       const newPost = Post.create({
         title,
-        text,
-        category,
-        userId: existingUser?.id,
+        content,
+        description,
+        authorId: existingUser?.id,
+        tags,
+        metaDescription,
+        metaKeywords,
+        metaTitle,
+        publish,
+        comments,
+        cover,
       });
 
       await newPost.save();
@@ -116,7 +151,20 @@ export class PostResolver {
   @Mutation((_return) => PostMutationResponse)
   @UseMiddleware(checkAuth)
   async updatePost(
-    @Arg("updatePostInput") { id, title, text, category }: UpdatePostInput,
+    @Arg("id") id: string,
+    @Arg("updatePostInput")
+    {
+      coverFile,
+      title,
+      content,
+      description,
+      tags,
+      metaDescription,
+      metaKeywords,
+      metaTitle,
+      publish,
+      comments,
+    }: UpdatePostInput,
     @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
     const existingPost = await Post.findOne(id);
@@ -127,13 +175,34 @@ export class PostResolver {
         message: "Post not found",
       };
 
-    if (existingPost.userId !== user.userId) {
+    if (existingPost.authorId !== user.userId) {
       return { code: 401, success: false, message: "Unauthorised" };
+    }
+    let cover;
+
+    const uploader = new S3Service();
+    if (coverFile) {
+      try {
+        const avatarRes: any = await uploader.uploadFile(coverFile);
+        cover = avatarRes.Location;
+      } catch (error) {
+        return {
+          code: 400,
+          success: false,
+          message: error,
+        };
+      }
     }
 
     existingPost.title = title;
-    existingPost.text = text;
-    existingPost.category = category;
+    existingPost.description = description;
+    existingPost.tags = tags;
+    existingPost.metaDescription = metaDescription;
+    existingPost.metaKeywords = metaKeywords;
+    existingPost.metaTitle = metaTitle;
+    existingPost.publish = publish;
+    existingPost.content = content;
+    existingPost.comments = comments;
 
     await existingPost.save();
 
@@ -159,7 +228,7 @@ export class PostResolver {
         message: "Post not found",
       };
 
-    if (existingPost.userId !== user.userId) {
+    if (existingPost.authorId !== user.userId) {
       return {
         code: 401,
         success: false,
