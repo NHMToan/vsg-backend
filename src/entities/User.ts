@@ -4,19 +4,18 @@ import {
   Column,
   Entity,
   JoinColumn,
-  OneToMany,
+  ManyToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Post } from "./Post";
 import { Profile } from "./Profile";
-
 @ObjectType()
 @Entity()
 export class User extends BaseEntity {
   @Field((_type) => ID)
   @PrimaryGeneratedColumn("uuid")
-  id!: string;
+  readonly id!: string;
 
   @Field()
   @Column({ unique: true })
@@ -41,13 +40,14 @@ export class User extends BaseEntity {
   @Column({ nullable: true, default: "user" })
   role: string;
 
-  @OneToMany(() => Post, (post) => post.author)
-  posts: Post[];
-
   @Column({ nullable: true })
   profileId: number;
 
   @OneToOne(() => Profile)
   @JoinColumn()
   profile: Profile;
+
+  @Field(() => [Post])
+  @ManyToMany((_type) => Post, (post) => post.favoritePerson)
+  favoritePosts: Promise<Post[]>;
 }

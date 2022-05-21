@@ -31,5 +31,5 @@ export class UpdatePostInput {
   publish!: boolean;
 
   @Field()
-  comments!: boolean;
+  allowComments!: boolean;
 }

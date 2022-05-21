@@ -4,10 +4,15 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from "typeorm";
+import { Comment } from "./Comment";
 import { User } from "./User";
 
 @ObjectType()
@@ -15,7 +20,7 @@ import { User } from "./User";
 export class Post extends BaseEntity {
   @Field((_type) => ID)
   @PrimaryGeneratedColumn("uuid")
-  id!: string;
+  readonly id!: string;
 
   @Field()
   @Column()
@@ -54,20 +59,30 @@ export class Post extends BaseEntity {
   publish: boolean;
 
   @Field()
-  @Column()
-  comments: boolean;
-
-  @Field()
-  @Column()
-  authorId!: string;
+  @Column({ default: true })
+  allowComments: boolean;
 
   @Field((_type) => User)
-  @ManyToOne(() => User, (user) => user.posts)
-  author!: User;
+  @ManyToOne((_type) => User)
+  author: User;
+
+  @RelationId((post: Post) => post.author)
+  authorId: string;
 
   @Field()
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
+
+  @Field((_type) => [Comment])
+  @OneToMany((_type) => Comment, (comment) => comment.post, {
+    cascade: ["insert"],
+  })
+  comments: Comment[];
+
+  @Field((_type) => [User], { defaultValue: [] })
+  @ManyToMany((_type) => User, (user) => user.favoritePosts)
+  @JoinTable()
+  favoritePerson: Promise<User[]>;
 
   @Field()
   @UpdateDateColumn({ type: "timestamptz" })

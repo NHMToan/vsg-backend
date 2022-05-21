@@ -11,14 +11,19 @@ import {
   UseMiddleware,
 } from "type-graphql";
 import { FindManyOptions } from "typeorm";
+import { Comment } from "../entities/Comment";
 import { Post } from "../entities/Post";
 import { User } from "../entities/User";
 import { checkAuth } from "../middleware/checkAuth";
 import { S3Service } from "../services/uploader";
 import { Context } from "../types/Context";
+import { MutationResponse } from "../types/MutationRes";
+import { CommentInput } from "../types/Post/CommentInput";
+import { CommentMutationResponse } from "../types/Post/CommentMutationResponse";
 import { CreatePostInput } from "../types/Post/CreatePostInput";
 import { PostMutationResponse } from "../types/Post/PostMutationResponse";
 import { Posts } from "../types/Post/Posts";
+import { ReplyCommentInput } from "../types/Post/ReplyCommentInput";
 import { UpdatePostInput } from "../types/Post/UpdatePostInput";
 
 @Resolver(Post)
@@ -31,6 +36,18 @@ export class PostResolver {
   @FieldResolver((_return) => User)
   async author(@Root() root: Post) {
     return await User.findOne(root.authorId);
+  }
+  @FieldResolver()
+  async comments(@Root() post: Post) {
+    return await Comment.find({
+      where: { post: { id: post.id } },
+    });
+  }
+
+  @FieldResolver((_return) => Number)
+  async favorite(@Root() root: Post) {
+    const favoritePerson = await root.favoritePerson;
+    return favoritePerson.length;
   }
 
   @Mutation((_return) => PostMutationResponse)
@@ -47,7 +64,7 @@ export class PostResolver {
       metaKeywords,
       metaTitle,
       publish,
-      comments,
+      allowComments,
     }: CreatePostInput,
     @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
@@ -74,13 +91,13 @@ export class PostResolver {
         title,
         content,
         description,
-        authorId: existingUser?.id,
+        author: existingUser,
         tags,
         metaDescription,
         metaKeywords,
         metaTitle,
         publish,
-        comments,
+        allowComments,
         cover,
       });
 
@@ -163,7 +180,7 @@ export class PostResolver {
       metaKeywords,
       metaTitle,
       publish,
-      comments,
+      allowComments,
     }: UpdatePostInput,
     @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
@@ -178,7 +195,7 @@ export class PostResolver {
     if (existingPost.authorId !== user.userId) {
       return { code: 401, success: false, message: "Unauthorised" };
     }
-    let cover;
+    let cover = existingPost.cover;
 
     const uploader = new S3Service();
     if (coverFile) {
@@ -202,7 +219,8 @@ export class PostResolver {
     existingPost.metaTitle = metaTitle;
     existingPost.publish = publish;
     existingPost.content = content;
-    existingPost.comments = comments;
+    existingPost.allowComments = allowComments;
+    existingPost.cover = cover;
 
     await existingPost.save();
 
@@ -214,10 +232,148 @@ export class PostResolver {
     };
   }
 
+  @Mutation((_returns) => MutationResponse)
+  @UseMiddleware(checkAuth)
+  async like(
+    @Arg("postId", (_type) => ID) postId: string,
+    @Ctx() { user }: Context
+  ): Promise<MutationResponse> {
+    // find the recipe
+    const post = await Post.findOne(postId);
+
+    const existingUser = await User.findOne(user.userId);
+
+    if (!post) {
+      return {
+        code: 400,
+        success: false,
+        message: "Invalid post",
+      };
+    }
+
+    if (!existingUser) {
+      return {
+        code: 400,
+        success: false,
+        message: "Invalid User",
+      };
+    }
+
+    const favoritePerson = await post.favoritePerson;
+
+    if (!Array.isArray(favoritePerson)) {
+      post.favoritePerson = Promise.resolve([existingUser]);
+
+      await post.save();
+      return {
+        code: 200,
+        success: true,
+        message: "Liked 1 successfully",
+      };
+    } else {
+      if (favoritePerson.find((p) => p.id === user.userId)) {
+        post.favoritePerson = Promise.resolve(
+          favoritePerson.filter((p) => p.id !== user.userId)
+        );
+
+        await post.save();
+        return {
+          code: 200,
+          success: true,
+          message: "Unliked successfully",
+        };
+      } else {
+        post.favoritePerson = Promise.resolve(
+          favoritePerson.concat(existingUser)
+        );
+
+        await post.save();
+        return {
+          code: 200,
+          success: true,
+          message: "Liked 2 successfully",
+        };
+      }
+    }
+  }
+
+  @Mutation((_returns) => CommentMutationResponse)
+  @UseMiddleware(checkAuth)
+  async commentPost(
+    @Arg("commentInput") commentInput: CommentInput,
+    @Ctx() { user }: Context
+  ): Promise<CommentMutationResponse> {
+    // find the recipe
+    const post = await Post.findOne(commentInput.postId, {
+      relations: ["comments"],
+    });
+
+    const existingUser = await User.findOne(user.userId);
+
+    if (!post) {
+      return {
+        code: 400,
+        success: false,
+        message: "Invalid post",
+      };
+    }
+
+    const newComment = Comment.create({
+      post: post,
+      content: commentInput.content,
+      author: existingUser,
+    });
+
+    await newComment.save();
+
+    post.comments.push(newComment);
+
+    await post.save();
+
+    return {
+      code: 200,
+      success: true,
+      message: "Comment added successfully",
+      comment: newComment,
+    };
+  }
+  @Mutation((_returns) => CommentMutationResponse)
+  @UseMiddleware(checkAuth)
+  async replyComment(
+    @Arg("replyCommentInput") replyCommentInput: ReplyCommentInput,
+    @Ctx() { user }: Context
+  ): Promise<CommentMutationResponse> {
+    // find the recipe
+    const existingComment = await Comment.findOne(replyCommentInput.commentId);
+
+    const existingUser = await User.findOne(user.userId);
+
+    if (!existingComment) {
+      return {
+        code: 400,
+        success: false,
+        message: "Invalid comment",
+      };
+    }
+
+    const newComment = Comment.create({
+      comment: existingComment,
+      content: replyCommentInput.content,
+      author: existingUser,
+    });
+
+    await newComment.save();
+
+    return {
+      code: 200,
+      success: true,
+      message: "Comment added successfully",
+    };
+  }
   @Mutation((_return) => PostMutationResponse)
   @UseMiddleware(checkAuth)
   async deletePost(
-    @Arg("id", (_type) => ID) id: number,
+    @Arg("id", (_type) => ID) id: string,
     @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
     const existingPost = await Post.findOne(id);

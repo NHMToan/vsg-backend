@@ -12,7 +12,7 @@ import {
 export class Profile extends BaseEntity {
   @Field((_type) => ID)
   @PrimaryGeneratedColumn()
-  id!: number;
+  readonly id!: number;
 
   @Field({ nullable: true })
   @Column({ nullable: true })

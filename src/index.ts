@@ -14,9 +14,11 @@ import "reflect-metadata";
 import { buildSchema } from "type-graphql";
 import { createConnection } from "typeorm";
 import { __prod__ } from "./constants";
+import { Comment } from "./entities/Comment";
 import { Post } from "./entities/Post";
 import { Profile } from "./entities/Profile";
 import { User } from "./entities/User";
+import { CommentResolver } from "./resolvers/comment";
 import { GreetingResolver } from "./resolvers/greeting";
 import { PostResolver } from "./resolvers/post";
 import { ProfileResolver } from "./resolvers/profile";
@@ -45,7 +47,7 @@ const main = async () => {
           synchronize: true,
         }),
     logging: true,
-    entities: [User, Post, Profile],
+    entities: [User, Post, Profile, Comment],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
   if (__prod__) await connection.runMigrations();
@@ -74,6 +76,7 @@ const main = async () => {
         UserResolver,
         PostResolver,
         ProfileResolver,
+        CommentResolver,
       ],
     }),
     plugins: [
