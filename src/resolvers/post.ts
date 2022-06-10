@@ -50,6 +50,14 @@ export class PostResolver {
     return favoritePerson.length;
   }
 
+  @FieldResolver((_return) => Number)
+  async comment(@Root() post: Post) {
+    const comments = await Comment.find({
+      where: { post: { id: post.id } },
+    });
+    return comments.length || 0;
+  }
+
   @Mutation((_return) => PostMutationResponse)
   @UseMiddleware(checkAuth)
   async createPost(

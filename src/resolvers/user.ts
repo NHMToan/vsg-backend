@@ -29,14 +29,14 @@ export class UserResolver {
   async avatar(@Root() root: User) {
     const foundProfile = await Profile.findOne(root?.profileId);
 
-    return foundProfile?.avatar;
+    return foundProfile?.avatar || "";
   }
 
   @FieldResolver((_return) => String)
   async displayName(@Root() root: User) {
     const foundProfile = await Profile.findOne(root?.profileId);
 
-    return foundProfile?.displayName;
+    return foundProfile?.displayName || `${root.lastName} ${root.firstName}`;
   }
 
   @FieldResolver((_return) => Profile)
@@ -68,20 +68,53 @@ export class UserResolver {
     return foundProfile;
   }
 
-  @Query((_return) => Profile, { nullable: true })
-  async getProfile(
-    @Arg("uuid", (_type) => ID) uuid: string
-  ): Promise<Profile | undefined> {
+  @Mutation((_return) => UserMutationResponse)
+  async login(
+    @Arg("loginInput") { email, password }: LoginInput,
+    @Ctx() { res }: Context
+  ): Promise<UserMutationResponse> {
     try {
-      const user = await User.findOne(uuid);
-      if (user) {
-        return user.profile;
-      } else {
-        throw "Ca";
+      const existingUser = await User.findOne({ email });
+
+      if (!existingUser) {
+        return {
+          code: 400,
+          success: false,
+          message: "User not found",
+        };
       }
+
+      const isPasswordValid = await argon2.verify(
+        existingUser.password,
+        password
+      );
+
+      if (!isPasswordValid) {
+        return {
+          code: 400,
+          success: false,
+          message: "Incorrect password",
+        };
+      }
+
+      const accessToken = createToken("accessToken", existingUser);
+
+      sendRefreshToken(res, existingUser);
+
+      return {
+        code: 200,
+        success: true,
+        message: "Logged in successfully",
+        user: existingUser,
+        accessToken,
+      };
     } catch (error) {
       console.log(error);
-      return undefined;
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
     }
   }
 
@@ -103,7 +136,8 @@ export class UserResolver {
       };
     }
 
-    const profile = Profile.create();
+    const profile = Profile.create({});
+    profile.displayName = lastName + (firstName ? ` ${firstName}` : "");
     await profile.save();
 
     const hashedPassword = await argon2.hash(password);
@@ -117,9 +151,9 @@ export class UserResolver {
 
     newUser.profile = profile;
 
-    const accessToken = createToken("accessToken", newUser);
-
     await newUser.save();
+
+    const accessToken = createToken("accessToken", newUser);
 
     sendRefreshToken(res, newUser);
 
@@ -239,56 +273,6 @@ export class UserResolver {
       message: "User updated successfully",
       user: existingUser,
     };
-  }
-
-  @Mutation((_return) => UserMutationResponse)
-  async login(
-    @Arg("loginInput") { email, password }: LoginInput,
-    @Ctx() { res }: Context
-  ): Promise<UserMutationResponse> {
-    try {
-      const existingUser = await User.findOne({ email });
-
-      if (!existingUser) {
-        return {
-          code: 400,
-          success: false,
-          message: "User not found",
-        };
-      }
-
-      const isPasswordValid = await argon2.verify(
-        existingUser.password,
-        password
-      );
-
-      if (!isPasswordValid) {
-        return {
-          code: 400,
-          success: false,
-          message: "Incorrect password",
-        };
-      }
-
-      const accessToken = createToken("accessToken", existingUser);
-
-      sendRefreshToken(res, existingUser);
-
-      return {
-        code: 200,
-        success: true,
-        message: "Logged in successfully",
-        user: existingUser,
-        accessToken,
-      };
-    } catch (error) {
-      console.log(error);
-      return {
-        code: 500,
-        success: false,
-        message: `Internal server error ${error.message}`,
-      };
-    }
   }
 
   @Mutation((_return) => UserMutationResponse)

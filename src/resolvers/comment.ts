@@ -17,6 +17,7 @@ import { checkAuth } from "../middleware/checkAuth";
 import { Context } from "../types/Context";
 import { CommentMutationResponse } from "../types/Post/CommentMutationResponse";
 import { Comments } from "../types/Post/Comments";
+
 @Resolver((_) => Comment)
 export class CommentResolver {
   @FieldResolver((_return) => User)
@@ -86,11 +87,13 @@ export class CommentResolver {
       const realLimit = Math.min(50, limit);
       const realOffset = offset || 0;
 
-      const orderingField = ordering || "createdAt";
+      const orderingField = ordering || "-createdAt";
 
       const findOptions: FindManyOptions<Comment> = {
         order: {
-          [orderingField]: ordering?.startsWith("-") ? "DESC" : "ASC",
+          [orderingField.replace("-", "")]: orderingField.startsWith("-")
+            ? "DESC"
+            : "ASC",
         },
         take: realLimit,
         skip: realOffset,

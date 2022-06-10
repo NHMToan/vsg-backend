@@ -3,16 +3,23 @@ import {
   BaseEntity,
   Column,
   Entity,
+  ManyToMany,
+  OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
+import { Conversation } from "./Conversation";
+import { Following } from "./Following";
+import { Friendship } from "./Friendship";
+import { User } from "./User";
 
 @ObjectType()
 @Entity()
 export class Profile extends BaseEntity {
   @Field((_type) => ID)
-  @PrimaryGeneratedColumn()
-  readonly id!: number;
+  @PrimaryGeneratedColumn("uuid")
+  readonly id!: string;
 
   @Field({ nullable: true })
   @Column({ nullable: true })
@@ -91,6 +98,31 @@ export class Profile extends BaseEntity {
   following: number;
 
   @Field()
+  @Column({ default: 0 })
+  friend: number;
+
+  @Field()
   @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
+
+  @OneToOne((_type) => User, (user) => user.profile, {
+    cascade: true,
+  })
+  user: User;
+
+  @Field((_type) => [Following])
+  @OneToMany((_type) => Following, (follow) => follow.follower)
+  followings: Following[];
+
+  @Field((_type) => [Following])
+  @OneToMany((_type) => Following, (follow) => follow.followedTo)
+  followers: Following[];
+
+  @Field((_type) => [Friendship])
+  @OneToMany((_type) => Friendship, (friend) => friend.sender)
+  friends: Friendship[];
+
+  @Field((_type) => [Conversation])
+  @ManyToMany((_) => Conversation, (con) => con.members)
+  conversations: Conversation[];
 }

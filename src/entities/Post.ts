@@ -69,10 +69,6 @@ export class Post extends BaseEntity {
   @RelationId((post: Post) => post.author)
   authorId: string;
 
-  @Field()
-  @CreateDateColumn({ type: "timestamptz" })
-  createdAt: Date;
-
   @Field((_type) => [Comment])
   @OneToMany((_type) => Comment, (comment) => comment.post, {
     cascade: ["insert"],
@@ -83,6 +79,10 @@ export class Post extends BaseEntity {
   @ManyToMany((_type) => User, (user) => user.favoritePosts)
   @JoinTable()
   favoritePerson: Promise<User[]>;
+
+  @Field()
+  @CreateDateColumn({ type: "timestamptz" })
+  createdAt: Date;
 
   @Field()
   @UpdateDateColumn({ type: "timestamptz" })

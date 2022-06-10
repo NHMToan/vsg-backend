@@ -8,18 +8,32 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { graphqlUploadExpress } from "graphql-upload";
+import { useServer } from "graphql-ws/lib/use/ws";
 import { createServer } from "http";
 import path from "path";
 import "reflect-metadata";
 import { buildSchema } from "type-graphql";
 import { createConnection } from "typeorm";
+import { WebSocketServer } from "ws";
 import { __prod__ } from "./constants";
+import { Club } from "./entities/Club";
+import { ClubMember } from "./entities/ClubMember";
 import { Comment } from "./entities/Comment";
+import { Conversation } from "./entities/Conversation";
+import { Following } from "./entities/Following";
+import { Friendship } from "./entities/Friendship";
+import { Message } from "./entities/Message";
 import { Post } from "./entities/Post";
 import { Profile } from "./entities/Profile";
 import { User } from "./entities/User";
+import { ConversationResolver } from "./resolvers/chat";
+import { ClubResolver } from "./resolvers/club";
+import { ClubMemberResolver } from "./resolvers/clubmember";
 import { CommentResolver } from "./resolvers/comment";
+import { FollowingResolver } from "./resolvers/following";
+import { FriendResolver } from "./resolvers/friend";
 import { GreetingResolver } from "./resolvers/greeting";
+import { MessageResolver } from "./resolvers/message";
 import { PostResolver } from "./resolvers/post";
 import { ProfileResolver } from "./resolvers/profile";
 import { UserResolver } from "./resolvers/user";
@@ -47,7 +61,18 @@ const main = async () => {
           synchronize: true,
         }),
     logging: true,
-    entities: [User, Post, Profile, Comment],
+    entities: [
+      User,
+      Post,
+      Profile,
+      Comment,
+      Following,
+      Friendship,
+      Conversation,
+      Message,
+      Club,
+      ClubMember,
+    ],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
   if (__prod__) await connection.runMigrations();
@@ -68,20 +93,43 @@ const main = async () => {
 
   const httpServer = createServer(app);
 
+  const schema = await buildSchema({
+    validate: false,
+    resolvers: [
+      GreetingResolver,
+      UserResolver,
+      PostResolver,
+      ProfileResolver,
+      CommentResolver,
+      FollowingResolver,
+      FriendResolver,
+      ConversationResolver,
+      MessageResolver,
+      ClubResolver,
+      ClubMemberResolver,
+    ],
+  });
+  const wsServer = new WebSocketServer({
+    server: httpServer,
+    path: "/subscriptions",
+  });
+
+  const serverCleanup = useServer({ schema }, wsServer);
+
   const apolloServer = new ApolloServer({
-    schema: await buildSchema({
-      validate: false,
-      resolvers: [
-        GreetingResolver,
-        UserResolver,
-        PostResolver,
-        ProfileResolver,
-        CommentResolver,
-      ],
-    }),
+    schema,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       ApolloServerPluginLandingPageGraphQLPlayground,
+      {
+        async serverWillStart() {
+          return {
+            async drainServer() {
+              await serverCleanup.dispose();
+            },
+          };
+        },
+      },
     ],
     context: ({
       req,
@@ -117,6 +165,9 @@ const main = async () => {
   // Typically, http://localhost:4000/graphql
   console.log(
     `SERVER STARTED ON PORT ${PORT}. GRAPHQL ENDPOINT ON http://localhost:${PORT}${apolloServer.graphqlPath}`
+  );
+  console.log(
+    `🚀 Subscription endpoint ready at ws://localhost:${PORT}${apolloServer.graphqlPath}`
   );
 };
 

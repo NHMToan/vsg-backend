@@ -41,9 +41,11 @@ export class User extends BaseEntity {
   role: string;
 
   @Column({ nullable: true })
-  profileId: number;
+  profileId: string;
 
-  @OneToOne(() => Profile)
+  @OneToOne(() => Profile, (details) => details.user, {
+    cascade: ["insert"],
+  })
   @JoinColumn()
   profile: Profile;
 

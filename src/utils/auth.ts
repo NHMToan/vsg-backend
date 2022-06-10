@@ -7,6 +7,7 @@ export const createToken = (type: "accessToken" | "refreshToken", user: User) =>
   sign(
     {
       userId: user.id,
+      profileId: user.profileId,
     },
     type === "accessToken"
       ? (process.env.ACCESS_TOKEN_SECRET as Secret)

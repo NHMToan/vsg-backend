@@ -1,3 +1,4 @@
+import { FileUpload, GraphQLUpload } from "graphql-upload";
 import { Field, InputType } from "type-graphql";
 
 @InputType()
@@ -55,4 +56,10 @@ export class UpdateProfileInput {
 
   @Field({ nullable: true })
   phoneNumber: string;
+
+  @Field((_) => GraphQLUpload, { nullable: true })
+  coverFile: FileUpload;
+
+  @Field((_) => GraphQLUpload, { nullable: true })
+  avatarFile: FileUpload;
 }
