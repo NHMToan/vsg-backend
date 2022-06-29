@@ -15,7 +15,7 @@ import { Profile } from "../entities/Profile";
 import { User } from "../entities/User";
 import { checkAuth } from "../middleware/checkAuth";
 import { Context } from "../types/Context";
-import { LoginInput } from "../types/User/LoginInput";
+import { FBLoginInput, LoginInput } from "../types/User/LoginInput";
 import { RegisterInput } from "../types/User/RegisterInput";
 import { UpdateUserInput } from "../types/User/UpdateUserInput";
 import { UserMutationResponse } from "../types/User/UserMutationResponse";
@@ -36,7 +36,7 @@ export class UserResolver {
   async displayName(@Root() root: User) {
     const foundProfile = await Profile.findOne(root?.profileId);
 
-    return foundProfile?.displayName || `${root.lastName} ${root.firstName}`;
+    return foundProfile?.displayName || `${root.lastName}`;
   }
 
   @FieldResolver((_return) => Profile)
@@ -108,6 +108,68 @@ export class UserResolver {
         user: existingUser,
         accessToken,
       };
+    } catch (error) {
+      console.log(error);
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
+    }
+  }
+
+  @Mutation((_return) => UserMutationResponse)
+  async fbLogin(
+    @Arg("fbLoginInput") { id, name, picture }: FBLoginInput,
+    @Ctx() { res }: Context
+  ): Promise<UserMutationResponse> {
+    try {
+      const existingUser = await User.findOne({
+        where: {
+          provider: "facebook",
+          email: id,
+        },
+      });
+
+      if (!existingUser) {
+        const newProfile = Profile.create({});
+        newProfile.displayName = name;
+        if (picture) newProfile.avatar = picture;
+
+        await newProfile.save();
+
+        const newUser = User.create({
+          email: id,
+          provider: "facebook",
+          lastName: name,
+          profile: newProfile,
+        });
+
+        await newUser.save();
+
+        const accessToken = createToken("accessToken", newUser);
+        sendRefreshToken(res, newUser);
+
+        return {
+          code: 200,
+          success: true,
+          message: "Logged in successfully",
+          user: newUser,
+          accessToken,
+        };
+      } else {
+        const accessToken = createToken("accessToken", existingUser);
+
+        sendRefreshToken(res, existingUser);
+
+        return {
+          code: 200,
+          success: true,
+          message: "Logged in successfully",
+          user: existingUser,
+          accessToken,
+        };
+      }
     } catch (error) {
       console.log(error);
       return {

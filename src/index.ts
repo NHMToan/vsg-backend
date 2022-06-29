@@ -17,19 +17,23 @@ import { createConnection } from "typeorm";
 import { WebSocketServer } from "ws";
 import { __prod__ } from "./constants";
 import { Club } from "./entities/Club";
+import { ClubEvent } from "./entities/ClubEvent";
 import { ClubMember } from "./entities/ClubMember";
 import { Comment } from "./entities/Comment";
 import { Conversation } from "./entities/Conversation";
+import { EventHistory } from "./entities/EventHistory";
 import { Following } from "./entities/Following";
 import { Friendship } from "./entities/Friendship";
 import { Message } from "./entities/Message";
 import { Post } from "./entities/Post";
 import { Profile } from "./entities/Profile";
 import { User } from "./entities/User";
+import { Vote } from "./entities/Vote";
 import { ConversationResolver } from "./resolvers/chat";
 import { ClubResolver } from "./resolvers/club";
 import { ClubMemberResolver } from "./resolvers/clubmember";
 import { CommentResolver } from "./resolvers/comment";
+import { ClubEventResolver } from "./resolvers/event";
 import { FollowingResolver } from "./resolvers/following";
 import { FriendResolver } from "./resolvers/friend";
 import { GreetingResolver } from "./resolvers/greeting";
@@ -72,6 +76,9 @@ const main = async () => {
       Message,
       Club,
       ClubMember,
+      EventHistory,
+      ClubEvent,
+      Vote,
     ],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
@@ -107,6 +114,7 @@ const main = async () => {
       MessageResolver,
       ClubResolver,
       ClubMemberResolver,
+      ClubEventResolver,
     ],
   });
   const wsServer = new WebSocketServer({

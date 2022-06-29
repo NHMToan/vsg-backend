@@ -1,3 +1,4 @@
+import { ClubEvent } from "../entities/ClubEvent";
 import {
   Arg,
   Ctx,
@@ -143,6 +144,15 @@ export class ClubResolver {
       });
 
       await newClub.save();
+
+      const clubMem = ClubMember.create({
+        profile: existingProfile,
+        club: newClub,
+        status: 2,
+        role: 2,
+      });
+
+      await clubMem.save();
 
       return {
         code: 200,
@@ -452,6 +462,9 @@ export class ClubResolver {
         message: "Unauthorised",
       };
     }
+
+    await ClubEvent.delete({ club: existingClub });
+    await ClubMember.delete({ club: existingClub });
 
     await Club.delete({ id });
 

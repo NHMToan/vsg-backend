@@ -8,3 +8,14 @@ export class LoginInput {
   @Field()
   password: string;
 }
+@InputType()
+export class FBLoginInput {
+  @Field()
+  id: string;
+
+  @Field()
+  name: string;
+
+  @Field()
+  picture: string;
+}

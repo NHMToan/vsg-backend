@@ -1,5 +1,7 @@
+import { Context } from "../types/Context";
 import {
   Arg,
+  Ctx,
   FieldResolver,
   ID,
   Int,
@@ -25,6 +27,13 @@ export class ClubMemberResolver {
   @FieldResolver((_return) => Club)
   async club(@Root() root: ClubMember) {
     return await Club.findOne(root.clubId);
+  }
+
+  @FieldResolver((_return) => Boolean)
+  @UseMiddleware(checkAuth)
+  async isAdmin(@Root() root: ClubMember, @Ctx() { user }: Context) {
+    if (root.profileId === user.profileId) return true;
+    return false;
   }
 
   @Query((_return) => Clubmembers, { nullable: true })

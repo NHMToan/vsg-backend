@@ -21,16 +21,20 @@ export class User extends BaseEntity {
   @Column({ unique: true })
   email!: string;
 
-  @Column()
+  @Column({ nullable: true })
   password!: string;
 
-  @Field()
+  @Field({ nullable: true })
   @Column({ nullable: true })
   firstName: string;
 
   @Field()
   @Column()
   lastName!: string;
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  provider!: string;
 
   @Field()
   @Column({ nullable: true, default: true })
