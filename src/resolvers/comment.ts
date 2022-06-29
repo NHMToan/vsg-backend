@@ -12,7 +12,7 @@ import {
 } from "type-graphql";
 import { FindManyOptions } from "typeorm";
 import { Comment } from "../entities/Comment";
-import { User } from "../entities/user";
+import { User } from "../entities/User";
 import { checkAuth } from "../middleware/checkAuth";
 import { Context } from "../types/Context";
 import { CommentMutationResponse } from "../types/Post/CommentMutationResponse";
