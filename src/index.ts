@@ -59,9 +59,13 @@ const main = async () => {
           ssl: true,
         }
       : {
-          database: "my-oneapp-dev",
-          username: process.env.DB_USERNAME,
-          password: process.env.DB_PASSWORD,
+          database: __prod__ ? process.env.DB_NAME_PROD : process.env.DB_NAME,
+          username: __prod__
+            ? process.env.DB_USERNAME_PROD
+            : process.env.DB_USERNAME,
+          password: __prod__
+            ? process.env.DB_PASSWORD_PROD
+            : process.env.DB_PASSWORD,
           synchronize: true,
         }),
     logging: true,
