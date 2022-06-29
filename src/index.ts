@@ -59,7 +59,7 @@ const main = async () => {
           ssl: true,
         }
       : {
-          database: process.env.DB_NAME,
+          database: process.env.DB_USERNAME,
           username: process.env.DB_USERNAME,
           password: process.env.DB_PASSWORD,
           synchronize: true,
@@ -124,20 +124,21 @@ const main = async () => {
 
   const serverCleanup = useServer({ schema }, wsServer);
 
+  const myPlugin = {
+    async serverWillStart() {
+      return {
+        async drainServer() {
+          await serverCleanup.dispose();
+        },
+      };
+    },
+  };
   const apolloServer = new ApolloServer({
     schema,
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       ApolloServerPluginLandingPageGraphQLPlayground,
-      {
-        async serverWillStart() {
-          return {
-            async drainServer() {
-              await serverCleanup.dispose();
-            },
-          };
-        },
-      },
+      myPlugin,
     ],
     context: ({
       req,
