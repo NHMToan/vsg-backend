@@ -1,17 +1,18 @@
 version: "3.8"
 
 services:
-  db:
+  postgresdb:
     image: postgres:latest
     restart: always
-    network_mode: bridge
+    networks:
+      - shared-network
     environment:
       - POSTGRES_USER=vsguser
       - POSTGRES_PASSWORD=B7V8NwNRhLFkCY4
     ports:
       - "5432:5432"
     volumes:
-      - db:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
 
   nginx:
     image: nginx:latest
@@ -24,37 +25,35 @@ services:
     depends_on:
       api-prod:
         condition: service_healthy
-      app-prod:
-        condition: service_started
     networks:
       - shared-network
 
   api-prod:
-    container_name: nestjs_api_prod
-    image: nestjs-api-prod:1.0.0
+    container_name: vsg_api
+    image: vsg-api-prod:1.0.0
     build:
-      context: nestjs-cars-app
+      context: vsg-backend
       target: production
       dockerfile: Dockerfile
-    command: sh -c './bin/wait-for -t 0 mysqldb:3306 -- yarn start:prod'
+    command: sh -c './bin/wait-for -t 0 postgresdb:5432 -- yarn start'
     depends_on:
-      - mysqldb
+      - postgresdb
     networks:
       - shared-network
     ports:
-      - 9000:9000
+      - 4000:9000
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "http://api-prod:9000"]
+      test: ["CMD", "curl", "http://45.32.100.27:9000"]
       interval: 5s
       timeout: 3s
       retries: 6
 
   app-prod:
-    container_name: vsg_app_prod
+    container_name: vsgt_app_prod
     image: vsg-app-prod:1.0.0
     build:
-      context: vsg-app
+      context: vsg-frontend
       target: production
       dockerfile: Dockerfile
     command: yarn run start:prod
@@ -68,5 +67,4 @@ networks:
   shared-network:
 
 volumes:
-  db-config:
   db-data:
