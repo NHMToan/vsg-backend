@@ -37,6 +37,10 @@ export class ClubEvent extends BaseEntity {
   @Column()
   end: string;
 
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  time: string;
+
   @Field()
   @Column()
   color: string;

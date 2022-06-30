@@ -1,22 +1,16 @@
 import {
   Arg,
-  Args,
   Ctx,
   FieldResolver,
   ID,
   Int,
   Mutation,
-  Publisher,
-  PubSub,
   Query,
   Resolver,
-  ResolverFilterData,
   Root,
-  Subscription,
   UseMiddleware,
 } from "type-graphql";
 import { Between, LessThan, MoreThan } from "typeorm";
-import { Topic } from "../constants";
 import { Club } from "../entities/Club";
 import { ClubEvent } from "../entities/ClubEvent";
 import { ClubMember } from "../entities/ClubMember";
@@ -24,12 +18,9 @@ import { Vote } from "../entities/Vote";
 import { checkAuth } from "../middleware/checkAuth";
 import {
   CreateEventInput,
-  CreateVoteInput,
   EventMutationResponse,
   Events,
-  NewVoteArgs,
-  NewVotePayload,
-  NewVoteSubscriptionData,
+  UpdateEventInput,
 } from "../types/Club";
 import { Context } from "../types/Context";
 function addMinutes(numOfMinutes: number, date = new Date()) {
@@ -166,6 +157,78 @@ export class ClubEventResolver {
     }
   }
 
+  @Mutation((_return) => EventMutationResponse)
+  @UseMiddleware(checkAuth)
+  async updateEvent(
+    @Arg("id") id: string,
+    @Arg("updateEventInput")
+    {
+      slot,
+      title,
+      description,
+      start,
+      end,
+      time,
+      color,
+      address,
+      addressLink,
+    }: UpdateEventInput,
+    @Ctx() { user }: Context
+  ): Promise<EventMutationResponse> {
+    const existingEvent = await ClubEvent.findOne(id);
+
+    if (!existingEvent)
+      return {
+        code: 400,
+        success: false,
+        message: "Event not found",
+      };
+    const foundMem = await ClubMember.findOne({
+      where: {
+        clubId: existingEvent.clubId,
+        profileId: user.profileId,
+      },
+    });
+
+    if (!foundMem || foundMem.role === 1) {
+      return { code: 401, success: false, message: "Unauthorised" };
+    }
+    const foundVotes = await Vote.find({
+      where: {
+        event: existingEvent,
+        status: 1,
+      },
+    });
+
+    const voteCount = foundVotes.reduce((previousValue, currentValue) => {
+      return previousValue + currentValue.value;
+    }, 0);
+    if (slot < voteCount) {
+      return {
+        code: 400,
+        success: false,
+        message: "Slots can not lower than current confirmed slots",
+      };
+    }
+
+    existingEvent.title = title;
+    existingEvent.description = description;
+    existingEvent.start = start;
+    existingEvent.end = end;
+    existingEvent.time = time;
+    existingEvent.color = color;
+    existingEvent.address = address;
+    existingEvent.addressLink = addressLink;
+
+    await existingEvent.save();
+
+    return {
+      code: 200,
+      success: true,
+      message: "Event updated successfully",
+      event: existingEvent,
+    };
+  }
   @Query((_return) => Events, { nullable: true })
   @UseMiddleware(checkAuth)
   async myEvents(@Ctx() { user }: Context): Promise<Events | null> {
@@ -293,262 +356,5 @@ export class ClubEventResolver {
       console.log(error);
       return null;
     }
-  }
-
-  @Mutation((_return) => EventMutationResponse)
-  @UseMiddleware(checkAuth)
-  async voteEvent(
-    @Arg("createVoteInput")
-    { eventId, status, value }: CreateVoteInput,
-    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
-    @Ctx() { user }: Context
-  ): Promise<EventMutationResponse> {
-    try {
-      const foundEvent = await ClubEvent.findOne(eventId);
-
-      if (!foundEvent)
-        return {
-          code: 400,
-          success: false,
-          message: "Event not found",
-        };
-
-      const clubMem = await ClubMember.findOne({
-        where: {
-          profileId: user.profileId,
-          clubId: foundEvent.clubId,
-        },
-      });
-      if (!clubMem || clubMem.status !== 2)
-        return {
-          code: 401,
-          success: false,
-          message: "You have not permistion to vote!.",
-        };
-
-      const foundVote = await Vote.findOne({
-        where: {
-          event: foundEvent,
-          member: clubMem,
-        },
-      });
-
-      if (foundVote)
-        return {
-          code: 400,
-          success: false,
-          message: "You have already voted.",
-        };
-
-      if (status === 1) {
-        const foundVotes = await Vote.find({
-          where: {
-            event: foundEvent,
-            status: 1,
-          },
-        });
-        const currentVoteCount = foundVotes.reduce(
-          (previousValue, currentValue) => {
-            return previousValue + currentValue.value;
-          },
-          0
-        );
-
-        if (currentVoteCount + value > foundEvent.slot) {
-          return {
-            code: 400,
-            success: false,
-            message: "Slot is full",
-          };
-        }
-
-        const newVote = Vote.create({
-          value,
-          status,
-          event: foundEvent,
-          member: clubMem,
-        });
-
-        await newVote.save();
-
-        await notifyAboutNewVote({
-          voteCount: currentVoteCount + value,
-          status,
-          eventId,
-        });
-        return {
-          code: 200,
-          success: true,
-          message: "Voted",
-          event: foundEvent,
-        };
-      } else {
-        const foundVotes = await Vote.find({
-          where: {
-            event: foundEvent,
-            status: 2,
-          },
-        });
-        const currentWaitingCount = foundVotes.reduce(
-          (previousValue, currentValue) => {
-            return previousValue + currentValue.value;
-          },
-          0
-        );
-
-        const newVote = Vote.create({
-          value,
-          status,
-          event: foundEvent,
-          member: clubMem,
-        });
-
-        await newVote.save();
-
-        await notifyAboutNewVote({
-          waitingCount: currentWaitingCount + value,
-          status,
-          eventId,
-        });
-        return {
-          code: 200,
-          success: true,
-          message: "Voted",
-          event: foundEvent,
-        };
-      }
-    } catch (error) {
-      console.log(error);
-      return {
-        code: 500,
-        success: false,
-        message: `Internal server error ${error.message}`,
-      };
-    }
-  }
-
-  @Mutation((_return) => EventMutationResponse)
-  @UseMiddleware(checkAuth)
-  async unVoteEvent(
-    @Arg("eventId", (_type) => ID)
-    eventId: string,
-    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
-    @Ctx() { user }: Context
-  ): Promise<EventMutationResponse> {
-    try {
-      const foundEvent = await ClubEvent.findOne(eventId);
-
-      if (!foundEvent)
-        return {
-          code: 400,
-          success: false,
-          message: "Event not found",
-        };
-
-      const clubMem = await ClubMember.findOne({
-        where: {
-          profileId: user.profileId,
-          clubId: foundEvent.clubId,
-        },
-      });
-
-      if (!clubMem || clubMem.status !== 2)
-        return {
-          code: 401,
-          success: false,
-          message: "You have not permistion to vote!.",
-        };
-
-      const foundVote = await Vote.findOne({
-        where: {
-          event: foundEvent,
-          member: clubMem,
-        },
-      });
-
-      if (!foundVote)
-        return {
-          code: 400,
-          success: false,
-          message: "You have not voted yet.",
-        };
-
-      await Vote.delete(foundVote.id);
-
-      if (foundVote.status === 1) {
-        const foundVotes = await Vote.find({
-          where: {
-            event: foundEvent,
-            status: 1,
-          },
-        });
-        const currentVoteCount = foundVotes.reduce(
-          (previousValue, currentValue) => {
-            return previousValue + currentValue.value;
-          },
-          0
-        );
-
-        await notifyAboutNewVote({
-          voteCount: currentVoteCount,
-          eventId,
-          status: foundVote.status,
-        });
-      } else {
-        const foundVotes = await Vote.find({
-          where: {
-            event: foundEvent,
-            status: 2,
-          },
-        });
-        const currentVoteCount = foundVotes.reduce(
-          (previousValue, currentValue) => {
-            return previousValue + currentValue.value;
-          },
-          0
-        );
-
-        await notifyAboutNewVote({
-          waitingCount: currentVoteCount,
-          eventId,
-          status: foundVote.status,
-        });
-      }
-
-      return {
-        code: 200,
-        success: true,
-        message: "Voted",
-        event: foundEvent,
-      };
-    } catch (error) {
-      console.log(error);
-      return {
-        code: 500,
-        success: false,
-        message: `Internal server error ${error.message}`,
-      };
-    }
-  }
-
-  @Subscription((_returns) => NewVoteSubscriptionData, {
-    topics: Topic.EventChanged,
-    filter: ({
-      payload,
-      args,
-    }: ResolverFilterData<NewVotePayload, NewVoteArgs>) => {
-      return payload.eventId === args.eventId && payload.status === args.status;
-    },
-  })
-  voteChanged(
-    @Root() newVote: NewVotePayload,
-    @Args() { eventId, status }: NewVoteArgs
-  ): NewVoteSubscriptionData {
-    return {
-      voteCount: newVote.voteCount,
-      waitingCount: newVote.waitingCount,
-      eventId,
-      status,
-    };
   }
 }

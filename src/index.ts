@@ -41,6 +41,7 @@ import { MessageResolver } from "./resolvers/message";
 import { PostResolver } from "./resolvers/post";
 import { ProfileResolver } from "./resolvers/profile";
 import { UserResolver } from "./resolvers/user";
+import { VoteResolver } from "./resolvers/vote";
 import refreshTokenRouter from "./routes/refreshTokenRouter";
 import { Context } from "./types/Context";
 import { buildDataLoaders } from "./utils/dataLoaders";
@@ -119,6 +120,7 @@ const main = async () => {
       ClubResolver,
       ClubMemberResolver,
       ClubEventResolver,
+      VoteResolver,
     ],
   });
   const wsServer = new WebSocketServer({

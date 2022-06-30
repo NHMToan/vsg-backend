@@ -6,6 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   RelationId,
+  UpdateDateColumn,
 } from "typeorm";
 
 import { Field, ID, Int, ObjectType } from "type-graphql";
@@ -33,6 +34,10 @@ export class Vote extends BaseEntity {
   @Field()
   @CreateDateColumn()
   createdAt: Date;
+
+  @Field()
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @Field((_type) => Int)
   @Column({ type: "int" })

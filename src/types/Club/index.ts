@@ -121,6 +121,9 @@ export class CreateEventInput {
   end: string;
 
   @Field()
+  time: string;
+
+  @Field()
   color: string;
 
   @Field({ nullable: true })
@@ -135,6 +138,37 @@ export class CreateEventInput {
   @Field({ nullable: true })
   isInstant: boolean;
 }
+
+@InputType()
+export class UpdateEventInput {
+  @Field()
+  title: string;
+
+  @Field()
+  description: string;
+
+  @Field()
+  start: string;
+
+  @Field()
+  end: string;
+
+  @Field()
+  time: string;
+
+  @Field()
+  color: string;
+
+  @Field({ nullable: true })
+  address: string;
+
+  @Field({ nullable: true })
+  addressLink: string;
+
+  @Field()
+  slot: number;
+}
+
 @InputType()
 export class CreateVoteInput {
   @Field()
