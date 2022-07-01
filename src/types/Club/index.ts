@@ -135,6 +135,9 @@ export class CreateEventInput {
   @Field()
   slot: number;
 
+  @Field()
+  maxvote: number;
+
   @Field({ nullable: true })
   isInstant: boolean;
 }
@@ -153,7 +156,7 @@ export class UpdateEventInput {
   @Field()
   end: string;
 
-  @Field()
+  @Field({ nullable: true })
   time: string;
 
   @Field()
@@ -167,6 +170,9 @@ export class UpdateEventInput {
 
   @Field()
   slot: number;
+
+  @Field()
+  maxVote: number;
 }
 
 @InputType()

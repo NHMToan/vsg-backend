@@ -48,38 +48,6 @@ export class ClubEventResolver {
     return await ClubMember.findOne(root.createdById);
   }
 
-  @FieldResolver((_return) => Boolean)
-  @UseMiddleware(checkAuth)
-  async isVoted(@Root() root: ClubEvent, @Ctx() { user }: Context) {
-    const foundClubMember = await ClubMember.findOne({
-      profileId: user.profileId,
-    });
-    const foundVote = await Vote.findOne({
-      where: {
-        event: root,
-        member: foundClubMember,
-      },
-    });
-    if (foundVote) return true;
-    return false;
-  }
-
-  @FieldResolver((_return) => Vote, { nullable: true })
-  @UseMiddleware(checkAuth)
-  async vote(@Root() root: ClubEvent, @Ctx() { user }: Context) {
-    const foundClubMember = await ClubMember.findOne({
-      profileId: user.profileId,
-    });
-    const foundVote = await Vote.findOne({
-      where: {
-        event: root,
-        member: foundClubMember,
-      },
-    });
-    if (foundVote) return foundVote;
-    return null;
-  }
-
   @FieldResolver((_return) => Number)
   async voteCount(@Root() root: ClubEvent) {
     const foundVotes = await Vote.find({
@@ -107,7 +75,36 @@ export class ClubEventResolver {
       return previousValue + currentValue.value;
     }, 0);
   }
-
+  @FieldResolver((_return) => Boolean)
+  @UseMiddleware(checkAuth)
+  async isVoted(@Root() root: ClubEvent, @Ctx() { user }: Context) {
+    const foundClubMember = await ClubMember.findOne({
+      profileId: user.profileId,
+    });
+    const foundVote = await Vote.findOne({
+      where: {
+        event: root,
+        member: foundClubMember,
+      },
+    });
+    if (foundVote) return true;
+    return false;
+  }
+  @FieldResolver((_return) => Vote, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async vote(@Root() root: ClubEvent, @Ctx() { user }: Context) {
+    const foundClubMember = await ClubMember.findOne({
+      profileId: user.profileId,
+    });
+    const foundVote = await Vote.findOne({
+      where: {
+        event: root,
+        member: foundClubMember,
+      },
+    });
+    if (foundVote) return foundVote;
+    return null;
+  }
   @Mutation((_return) => EventMutationResponse)
   @UseMiddleware(checkAuth)
   async createEvent(
@@ -160,7 +157,7 @@ export class ClubEventResolver {
   @Mutation((_return) => EventMutationResponse)
   @UseMiddleware(checkAuth)
   async updateEvent(
-    @Arg("id") id: string,
+    @Arg("id", (_type) => ID) id: string,
     @Arg("updateEventInput")
     {
       slot,
@@ -172,6 +169,7 @@ export class ClubEventResolver {
       color,
       address,
       addressLink,
+      maxVote,
     }: UpdateEventInput,
     @Ctx() { user }: Context
   ): Promise<EventMutationResponse> {
@@ -219,6 +217,7 @@ export class ClubEventResolver {
     existingEvent.color = color;
     existingEvent.address = address;
     existingEvent.addressLink = addressLink;
+    existingEvent.maxVote = maxVote;
 
     await existingEvent.save();
 
@@ -356,5 +355,81 @@ export class ClubEventResolver {
       console.log(error);
       return null;
     }
+  }
+
+  @Mutation((_return) => EventMutationResponse)
+  @UseMiddleware(checkAuth)
+  async changeEventStatus(
+    @Arg("id", (_type) => ID) id: string,
+    @Arg("status", (_type) => Int) status: number,
+    @Ctx() { user }: Context
+  ): Promise<EventMutationResponse> {
+    const existingEvent = await ClubEvent.findOne(id);
+
+    if (!existingEvent)
+      return {
+        code: 400,
+        success: false,
+        message: "Event not found",
+      };
+    const foundClubMem = await ClubMember.findOne({
+      where: {
+        clubId: existingEvent.clubId,
+        profileId: user.profileId,
+      },
+    });
+    if (!foundClubMem || foundClubMem.role === 1)
+      return {
+        code: 401,
+        success: false,
+        message: "Unauthorized",
+      };
+
+    existingEvent.status = status;
+    await existingEvent.save();
+    return {
+      code: 200,
+      success: true,
+      message: "Event status has changed successfully",
+      event: existingEvent,
+    };
+  }
+
+  @Mutation((_return) => EventMutationResponse)
+  @UseMiddleware(checkAuth)
+  async deleteEvent(
+    @Arg("id", (_type) => ID) id: string,
+    @Ctx() { user }: Context
+  ): Promise<EventMutationResponse> {
+    const existingEvent = await ClubEvent.findOne(id);
+
+    if (!existingEvent)
+      return {
+        code: 400,
+        success: false,
+        message: "Event not found",
+      };
+    const foundClubMem = await ClubMember.findOne({
+      where: {
+        clubId: existingEvent.clubId,
+        profileId: user.profileId,
+      },
+    });
+    if (!foundClubMem || foundClubMem.role === 1)
+      return {
+        code: 401,
+        success: false,
+        message: "Unauthorized",
+      };
+
+    await Vote.delete({
+      event: {
+        id,
+      },
+    });
+
+    await ClubEvent.delete(id);
+
+    return { code: 200, success: true, message: "Event deleted successfully" };
   }
 }
