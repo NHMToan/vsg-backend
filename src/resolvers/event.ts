@@ -205,7 +205,7 @@ export class ClubEventResolver {
       return {
         code: 400,
         success: false,
-        message: "Slots can not lower than current confirmed slots",
+        message: "Slots can not lower than the current confirmed slots",
       };
     }
 
@@ -218,6 +218,7 @@ export class ClubEventResolver {
     existingEvent.address = address;
     existingEvent.addressLink = addressLink;
     existingEvent.maxVote = maxVote;
+    existingEvent.slot = slot;
 
     await existingEvent.save();
 
