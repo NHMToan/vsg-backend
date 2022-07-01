@@ -164,9 +164,11 @@ const main = async () => {
   apolloServer.applyMiddleware({
     app,
     cors: {
-      origin: __prod__
-        ? process.env.CORS_ORIGIN_PROD
-        : process.env.CORS_ORIGIN_DEV,
+      origin: [
+        "http://localhost:3000",
+        "https://www.vietsportmates.top",
+        "https://vietsportmates.top",
+      ],
       credentials: true,
     },
   });
