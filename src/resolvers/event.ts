@@ -244,8 +244,6 @@ export class ClubEventResolver {
       const before15Minutes = addMinutes(15);
 
       for (let i = 0; i < clubMems.length; i++) {
-        console.log(before15Minutes.toISOString(), date.toISOString());
-
         const clubEvents = await ClubEvent.find({
           where: {
             club: {
@@ -336,7 +334,7 @@ export class ClubEventResolver {
       const foundEvents = await ClubEvent.find({
         where: {
           club,
-          start: Between(dateAfter, dateBefore),
+          time: Between(dateAfter, dateBefore),
         },
         skip: realOffset,
         take: realLimit,
