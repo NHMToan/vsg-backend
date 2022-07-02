@@ -242,7 +242,7 @@ export class ClubEventResolver {
 
       let foundEvents: ClubEvent[] = [];
       const date = new Date();
-      const before15Minutes = addMinutes(15);
+      const beforeMinutes = addMinutes(5);
 
       for (let i = 0; i < clubMems.length; i++) {
         const clubEvents = await ClubEvent.find({
@@ -251,7 +251,7 @@ export class ClubEventResolver {
               id: clubMems[i].clubId,
             },
             end: MoreThan(date.toISOString()),
-            start: LessThan(before15Minutes.toISOString()),
+            start: LessThan(beforeMinutes.toISOString()),
           },
         });
         foundEvents.push(...clubEvents);

@@ -1,3 +1,4 @@
+import { sendEventCountPubsub, updateConfirmedVote } from "../utils/event";
 import {
   Arg,
   Args,
@@ -44,6 +45,57 @@ export class VoteResolver {
   }
 
   @Query((_return) => Votes, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async getMyVotes(
+    @Arg("eventId", (_type) => ID) eventId: string,
+    @Ctx() { user }: Context
+  ): Promise<Votes | null> {
+    try {
+      const foundEvent = await ClubEvent.findOne(eventId);
+      if (!foundEvent)
+        return {
+          totalCount: 0,
+          hasMore: false,
+          results: [],
+        };
+
+      const clubMem = await ClubMember.findOne({
+        where: {
+          clubId: foundEvent.clubId,
+          profileId: user.profileId,
+        },
+      });
+
+      if (!clubMem || clubMem.status !== 2)
+        return {
+          totalCount: 0,
+          hasMore: false,
+          results: [],
+        };
+
+      const findOptions: FindManyOptions<Vote> = {
+        order: {
+          createdAt: "DESC",
+        },
+        where: {
+          event: foundEvent,
+          member: clubMem,
+        },
+      };
+      const votes = await Vote.find(findOptions);
+
+      return {
+        totalCount: votes.length,
+        hasMore: false,
+        results: votes,
+      };
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  }
+
+  @Query((_return) => Votes, { nullable: true })
   async getVotes(
     @Arg("limit", (_type) => Int!, { nullable: true }) limit: number,
     @Arg("offset", (_type) => Int!, { nullable: true }) offset: number,
@@ -71,7 +123,7 @@ export class VoteResolver {
 
       const findOptions: FindManyOptions<Vote> = {
         order: {
-          createdAt: "DESC",
+          createdAt: "ASC",
         },
         take: realLimit,
         skip: realOffset,
@@ -126,18 +178,21 @@ export class VoteResolver {
           message: "You have not permistion to vote!.",
         };
 
-      const foundVote = await Vote.findOne({
+      const foundVotes = await Vote.find({
         where: {
           event: foundEvent,
           member: clubMem,
         },
       });
+      const voteCount = foundVotes.reduce((previousValue, currentValue) => {
+        return previousValue + currentValue.value;
+      }, 0);
 
-      if (foundVote)
+      if (voteCount + value > foundEvent.maxVote)
         return {
           code: 400,
           success: false,
-          message: "You have already voted.",
+          message: "You have reached your permit votes.",
         };
 
       if (status === 1) {
@@ -230,76 +285,63 @@ export class VoteResolver {
   @Mutation((_return) => EventMutationResponse)
   @UseMiddleware(checkAuth)
   async unVoteEvent(
+    @Arg("voteId", (_type) => ID)
+    voteId: string,
     @Arg("eventId", (_type) => ID)
     eventId: string,
-    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
-    @Ctx() { user }: Context
+    @Arg("eventSlot", (_type) => Int)
+    eventSlot: number,
+    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>
   ): Promise<EventMutationResponse> {
     try {
-      const foundEvent = await ClubEvent.findOne(eventId);
-
-      if (!foundEvent)
-        return {
-          code: 400,
-          success: false,
-          message: "Event not found",
-        };
-
-      const clubMem = await ClubMember.findOne({
-        where: {
-          profileId: user.profileId,
-          clubId: foundEvent.clubId,
-        },
-      });
-
-      if (!clubMem || clubMem.status !== 2)
-        return {
-          code: 401,
-          success: false,
-          message: "You have not permistion to vote!.",
-        };
-
       const foundVote = await Vote.findOne({
-        where: {
-          event: foundEvent,
-          member: clubMem,
-        },
+        where: { id: voteId },
+        relations: ["event"],
       });
 
       if (!foundVote)
         return {
           code: 400,
           success: false,
-          message: "You have not voted yet.",
+          message: "Vote not found.",
         };
-
-      await Vote.delete(foundVote.id);
-
+      console.log("***** Event ID", eventId);
       if (foundVote.status === 1) {
-        const foundVotes = await Vote.find({
-          where: {
-            event: foundEvent,
-            status: 1,
-          },
-        });
-        const currentVoteCount = foundVotes.reduce(
-          (previousValue, currentValue) => {
-            return previousValue + currentValue.value;
-          },
-          0
-        );
+        await Vote.delete(voteId);
 
-        await notifyAboutNewVote({
-          voteCount: currentVoteCount,
-          eventId,
-          status: foundVote.status,
-        });
-      } else {
-        const foundVotes = await Vote.find({
+        const foundWaitingVotes = await Vote.find({
+          order: {
+            createdAt: "ASC",
+          },
           where: {
-            event: foundEvent,
+            event: { id: eventId },
             status: 2,
           },
+          relations: ["event", "member"],
+        });
+        const currentWaitingVoteCount = foundWaitingVotes.reduce(
+          (previousValue, currentValue) => {
+            return previousValue + currentValue.value;
+          },
+          0
+        );
+        if (!currentWaitingVoteCount || currentWaitingVoteCount === 0) {
+          await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+          return {
+            code: 200,
+            success: true,
+            message: "Vote deleted.",
+          };
+        }
+
+        //Update confirmed slots
+        const foundVotes = await Vote.find({
+          where: {
+            event: { id: eventId },
+            status: 1,
+          },
+          relations: ["event"],
         });
         const currentVoteCount = foundVotes.reduce(
           (previousValue, currentValue) => {
@@ -308,18 +350,36 @@ export class VoteResolver {
           0
         );
 
-        await notifyAboutNewVote({
-          waitingCount: currentVoteCount,
-          eventId,
-          status: foundVote.status,
-        });
+        const currentAvailableSlots = eventSlot - currentVoteCount;
+        if (!currentAvailableSlots || currentAvailableSlots <= 0) {
+          await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+          return {
+            code: 200,
+            success: true,
+            message: "Vote deleted.",
+          };
+        }
+
+        await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
+
+        await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+        await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+      } else {
+        await Vote.delete(foundVote.id);
+        await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+        await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+        return {
+          code: 200,
+          success: true,
+          message: "Vote deleted.",
+        };
       }
 
       return {
         code: 200,
         success: true,
         message: "Voted",
-        event: foundEvent,
       };
     } catch (error) {
       console.log(error);

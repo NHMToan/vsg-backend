@@ -136,7 +136,7 @@ export class CreateEventInput {
   slot: number;
 
   @Field()
-  maxvote: number;
+  maxVote: number;
 
   @Field({ nullable: true })
   isInstant: boolean;
