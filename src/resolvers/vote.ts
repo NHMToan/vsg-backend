@@ -305,7 +305,7 @@ export class VoteResolver {
           success: false,
           message: "Vote not found.",
         };
-      console.log("***** Event ID", eventId);
+
       if (foundVote.status === 1) {
         await Vote.delete(voteId);
 
@@ -379,7 +379,128 @@ export class VoteResolver {
       return {
         code: 200,
         success: true,
-        message: "Voted",
+        message: "Unvoted",
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
+    }
+  }
+
+  @Mutation((_return) => EventMutationResponse)
+  @UseMiddleware(checkAuth)
+  async changeEventVote(
+    @Arg("voteId", (_type) => ID)
+    voteId: string,
+    @Arg("eventId", (_type) => ID)
+    eventId: string,
+    @Arg("eventSlot", (_type) => Int)
+    eventSlot: number,
+    @Arg("newValue", (_type) => Int)
+    newValue: number,
+    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>
+  ): Promise<EventMutationResponse> {
+    try {
+      const foundVote = await Vote.findOne({
+        where: { id: voteId },
+        relations: ["event"],
+      });
+
+      if (!foundVote)
+        return {
+          code: 400,
+          success: false,
+          message: "Vote not found.",
+        };
+      if (foundVote.value <= newValue) {
+        return {
+          code: 400,
+          success: false,
+          message: "Can only change to lower slot.",
+        };
+      }
+
+      if (foundVote.status === 1) {
+        foundVote.value = newValue;
+        await foundVote.save();
+
+        const foundWaitingVotes = await Vote.find({
+          order: {
+            createdAt: "ASC",
+          },
+          where: {
+            event: { id: eventId },
+            status: 2,
+          },
+          relations: ["event", "member"],
+        });
+        const currentWaitingVoteCount = foundWaitingVotes.reduce(
+          (previousValue, currentValue) => {
+            return previousValue + currentValue.value;
+          },
+          0
+        );
+
+        if (!currentWaitingVoteCount || currentWaitingVoteCount === 0) {
+          await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+          return {
+            code: 200,
+            success: true,
+            message: "Vote is changed.",
+          };
+        }
+
+        //Update confirmed slots
+        const foundVotes = await Vote.find({
+          where: {
+            event: { id: eventId },
+            status: 1,
+          },
+          relations: ["event"],
+        });
+        const currentVoteCount = foundVotes.reduce(
+          (previousValue, currentValue) => {
+            return previousValue + currentValue.value;
+          },
+          0
+        );
+
+        const currentAvailableSlots = eventSlot - currentVoteCount;
+        if (!currentAvailableSlots || currentAvailableSlots <= 0) {
+          await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+          return {
+            code: 200,
+            success: true,
+            message: "Vote is changed.",
+          };
+        }
+
+        await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
+
+        await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+        await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+      } else {
+        foundVote.value = newValue;
+        await foundVote.save();
+
+        await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+        await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+        return {
+          code: 200,
+          success: true,
+          message: "Vote is changed.",
+        };
+      }
+
+      return {
+        code: 200,
+        success: true,
+        message: "Vote is changed",
       };
     } catch (error) {
       console.log(error);
@@ -390,7 +511,6 @@ export class VoteResolver {
       };
     }
   }
-
   @Subscription((_returns) => NewVoteSubscriptionData, {
     topics: Topic.EventChanged,
     filter: ({
