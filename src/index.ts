@@ -5,7 +5,6 @@ import {
 } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import cookieParser from "cookie-parser";
-import cors from "cors";
 import express from "express";
 import { graphqlUploadExpress } from "graphql-upload";
 import { useServer } from "graphql-ws/lib/use/ws";
@@ -91,14 +90,6 @@ const main = async () => {
 
   const app = express();
 
-  app.use(
-    cors({
-      origin: __prod__
-        ? process.env.CORS_ORIGIN_PROD
-        : process.env.CORS_ORIGIN_DEV,
-      credentials: true,
-    })
-  );
   app.use(cookieParser());
 
   app.use("/refresh_token", refreshTokenRouter);
