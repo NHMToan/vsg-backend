@@ -5,6 +5,7 @@ import {
 } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import express from "express";
 import { graphqlUploadExpress } from "graphql-upload";
 import { useServer } from "graphql-ws/lib/use/ws";
@@ -90,6 +91,16 @@ const main = async () => {
 
   const app = express();
 
+  app.use(
+    cors({
+      origin: [
+        "http://localhost:3000",
+        "https://www.vietsportmates.top",
+        "https://vietsportmates.top",
+      ],
+      credentials: true,
+    })
+  );
   app.use(cookieParser());
 
   app.use("/refresh_token", refreshTokenRouter);
@@ -155,19 +166,11 @@ const main = async () => {
   apolloServer.applyMiddleware({
     app,
     cors: {
-      origin: (origin, callback) => {
-        const whitelist = [
-          "http://localhost:3000",
-          "https://www.vietsportmates.top",
-          "https://vietsportmates.top",
-        ];
-
-        if (origin && whitelist.indexOf(origin) !== -1) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
+      origin: [
+        "http://localhost:3000",
+        "https://www.vietsportmates.top",
+        "https://vietsportmates.top",
+      ],
       credentials: true,
     },
   });
