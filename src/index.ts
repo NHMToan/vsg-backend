@@ -167,7 +167,7 @@ const main = async () => {
       origin: (origin, callback) => {
         const whitelist = [
           "http://localhost:3000",
-          "https://wwww.vietsportmates.top",
+          "https://www.vietsportmates.top",
           "https://vietsportmates.top",
         ];
 
