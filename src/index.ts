@@ -164,11 +164,19 @@ const main = async () => {
   apolloServer.applyMiddleware({
     app,
     cors: {
-      origin: [
-        "http://localhost:3000",
-        "/https://w+.vietsportmates.top$/",
-        "https://vietsportmates.top",
-      ],
+      origin: (origin, callback) => {
+        const whitelist = [
+          "http://localhost:3000",
+          "https://wwww.vietsportmates.top",
+          "https://vietsportmates.top",
+        ];
+
+        if (origin && whitelist.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       credentials: true,
     },
   });
