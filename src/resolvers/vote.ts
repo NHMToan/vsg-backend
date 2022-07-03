@@ -1,4 +1,8 @@
-import { sendEventCountPubsub, updateConfirmedVote } from "../utils/event";
+import {
+  reduceSlots,
+  sendEventCountPubsub,
+  updateConfirmedVote,
+} from "../utils/event";
 import {
   Arg,
   Args,
@@ -28,6 +32,7 @@ import {
   NewVoteArgs,
   NewVotePayload,
   NewVoteSubscriptionData,
+  VotCount,
   Votes,
 } from "../types/Club";
 import { Context } from "../types/Context";
@@ -44,6 +49,59 @@ export class VoteResolver {
     return await ClubEvent.findOne(root.eventId);
   }
 
+  @Query((_return) => VotCount, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async getVoteStats(
+    @Arg("eventId", (_type) => ID) eventId: string,
+    @Ctx() { user }: Context
+  ): Promise<VotCount | null> {
+    try {
+      const foundEvent = await ClubEvent.findOne(eventId);
+      if (!foundEvent) return null;
+
+      const clubMem = await ClubMember.findOne({
+        where: {
+          clubId: foundEvent.clubId,
+          profileId: user.profileId,
+        },
+      });
+
+      if (!clubMem || clubMem.status !== 2) return null;
+
+      const confirmedOptions: FindManyOptions<Vote> = {
+        where: {
+          event: foundEvent,
+          member: clubMem,
+          status: 1,
+        },
+      };
+      const confirmedVotes = await Vote.find(confirmedOptions);
+
+      const confirmed = confirmedVotes.reduce((previousValue, currentValue) => {
+        return previousValue + currentValue.value;
+      }, 0);
+
+      const waitingOptions: FindManyOptions<Vote> = {
+        where: {
+          event: foundEvent,
+          member: clubMem,
+          status: 2,
+        },
+      };
+      const waitingVotes = await Vote.find(waitingOptions);
+      const waiting = waitingVotes.reduce((previousValue, currentValue) => {
+        return previousValue + currentValue.value;
+      }, 0);
+      return {
+        confirmed,
+        waiting,
+        total: confirmed + waiting,
+      };
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  }
   @Query((_return) => Votes, { nullable: true })
   @UseMiddleware(checkAuth)
   async getMyVotes(
@@ -511,6 +569,232 @@ export class VoteResolver {
       };
     }
   }
+
+  @Mutation((_return) => EventMutationResponse)
+  @UseMiddleware(checkAuth)
+  async changeSlots(
+    @Arg("status", (_type) => Int)
+    status: number,
+    @Arg("eventId", (_type) => ID)
+    eventId: string,
+    @Arg("eventSlot", (_type) => Int)
+    eventSlot: number,
+    @Arg("newValue", (_type) => Int)
+    newValue: number,
+    @Ctx() { user }: Context,
+    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>
+  ): Promise<EventMutationResponse> {
+    try {
+      const foundEvent = await ClubEvent.findOne(eventId);
+
+      if (!foundEvent)
+        return {
+          code: 400,
+          success: false,
+          message: "Event not found",
+        };
+
+      const clubMem = await ClubMember.findOne({
+        where: {
+          profileId: user.profileId,
+          clubId: foundEvent.clubId,
+        },
+      });
+      if (!clubMem || clubMem.status !== 2)
+        return {
+          code: 401,
+          success: false,
+          message: "You have not permistion to vote!.",
+        };
+      const foundCurrenttVotes = await Vote.find({
+        where: {
+          event: foundEvent,
+          member: clubMem,
+          status,
+        },
+      });
+
+      const currentValue = foundCurrenttVotes.reduce(
+        (previousValue, currentValue) => {
+          return previousValue + currentValue.value;
+        },
+        0
+      );
+      const isUp = newValue - currentValue > 0 ? true : false;
+      const rangeValue = Math.abs(newValue - currentValue);
+
+      const foundVotes = await Vote.find({
+        where: {
+          event: foundEvent,
+          member: clubMem,
+        },
+      });
+      const voteCount = foundVotes.reduce((previousValue, currentValue) => {
+        return previousValue + currentValue.value;
+      }, 0);
+
+      if (isUp && rangeValue + voteCount > foundEvent.maxVote)
+        return {
+          code: 400,
+          success: false,
+          message: "You have reached your permit votes.",
+        };
+
+      if (status === 1) {
+        /// Up
+        if (isUp) {
+          const foundVotes = await Vote.find({
+            where: {
+              event: foundEvent,
+              status: 1,
+            },
+          });
+          const currentVoteCount = foundVotes.reduce(
+            (previousValue, currentValue) => {
+              return previousValue + currentValue.value;
+            },
+            0
+          );
+
+          if (
+            currentVoteCount > foundEvent.slot ||
+            currentVoteCount + rangeValue > foundEvent.slot
+          ) {
+            return {
+              code: 400,
+              success: false,
+              message: "Slot is full",
+            };
+          }
+
+          const newVote = Vote.create({
+            status: 1,
+            member: clubMem,
+            event: foundEvent,
+            value: rangeValue,
+          });
+          await newVote.save();
+
+          await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+
+          return {
+            code: 200,
+            success: true,
+            message: `Slot is changed`,
+          };
+        } else {
+          //*******/ Down
+
+          // Reduce confirmed slots
+          const myCurrentConfirmedVotes = await Vote.find({
+            order: {
+              createdAt: "DESC",
+            },
+            where: {
+              event: foundEvent,
+              member: clubMem,
+              status: 1,
+            },
+          });
+
+          await reduceSlots(myCurrentConfirmedVotes, rangeValue);
+
+          // Update confirmed slot from waiting list
+          const foundVotes = await Vote.find({
+            where: {
+              event: foundEvent,
+              status: 1,
+            },
+          });
+          const currentVoteCount = foundVotes.reduce(
+            (previousValue, currentValue) => {
+              return previousValue + currentValue.value;
+            },
+            0
+          );
+          const currentAvailableSlots = eventSlot - currentVoteCount;
+          if (!currentAvailableSlots || currentAvailableSlots <= 0) {
+            await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+            await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+            return {
+              code: 200,
+              success: true,
+              message: "Vote is changed.",
+            };
+          }
+          const foundWaitingVotes = await Vote.find({
+            order: {
+              createdAt: "ASC",
+            },
+            where: {
+              event: { id: eventId },
+              status: 2,
+            },
+            relations: ["event", "member"],
+          });
+          await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
+
+          await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
+          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+        }
+
+        return {
+          code: 200,
+          success: true,
+          message: `Slot is changed`,
+        };
+      } else {
+        if (isUp) {
+          const newVote = Vote.create({
+            status: 2,
+            member: clubMem,
+            event: foundEvent,
+            value: rangeValue,
+          });
+          await newVote.save();
+
+          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+
+          return {
+            code: 200,
+            success: true,
+            message: `Slot is changed`,
+          };
+        } else {
+          //*******/ Down
+
+          // Reduce confirmed slots
+          const myCurrentWaitingVotes = await Vote.find({
+            order: {
+              createdAt: "DESC",
+            },
+            where: {
+              event: foundEvent,
+              member: clubMem,
+              status: 2,
+            },
+          });
+
+          await reduceSlots(myCurrentWaitingVotes, rangeValue);
+          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+
+          return {
+            code: 200,
+            success: true,
+            message: `Slot is changed`,
+          };
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
+    }
+  }
+
   @Subscription((_returns) => NewVoteSubscriptionData, {
     topics: Topic.EventChanged,
     filter: ({

@@ -209,6 +209,17 @@ export class Votes {
   results!: Vote[];
 }
 
+@ObjectType()
+export class VotCount {
+  @Field()
+  confirmed!: number;
+
+  @Field()
+  waiting!: number;
+
+  @Field()
+  total!: number;
+}
 export interface NewVotePayload {
   eventId: string;
   status: number;

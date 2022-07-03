@@ -29,6 +29,37 @@ export const updateConfirmedVote = async (
     avaSlots -= waitingVotes[i].value;
   }
 };
+
+export const reduceSlots = async (
+  currentConfirmedVote: Vote[],
+  reduceValue: number
+) => {
+  let slots = reduceValue;
+  if (currentConfirmedVote.length === 1) {
+    console.log("ZOOOO dayyyy", slots);
+    if (currentConfirmedVote[0].value === slots) {
+      await Vote.delete(currentConfirmedVote[0].id);
+      return;
+    }
+    currentConfirmedVote[0].value = slots;
+    await currentConfirmedVote[0].save();
+    return;
+  }
+
+  for (let i = 0; i < currentConfirmedVote.length; i++) {
+    if (!slots || slots < 0) return;
+
+    if (currentConfirmedVote[i].value > slots) {
+      currentConfirmedVote[i].value = slots;
+      await currentConfirmedVote[i].save();
+      return;
+    } else {
+      slots -= currentConfirmedVote[i].value;
+      await Vote.delete(currentConfirmedVote[i].id);
+    }
+  }
+};
+
 export const sendEventCountPubsub = async (
   eventId: string,
   status: number,
