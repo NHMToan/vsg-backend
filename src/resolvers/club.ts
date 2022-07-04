@@ -1,4 +1,3 @@
-import { ClubEvent } from "../entities/ClubEvent";
 import {
   Arg,
   Ctx,
@@ -11,11 +10,13 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { Any, FindManyOptions } from "typeorm";
+import { FindManyOptions } from "typeorm";
 import { CLUB_CREATE_KEY } from "../constants";
 import { Club } from "../entities/Club";
+import { ClubEvent } from "../entities/ClubEvent";
 import { ClubMember } from "../entities/ClubMember";
 import { Profile } from "../entities/Profile";
+import { Vote } from "../entities/Vote";
 import { checkAuth } from "../middleware/checkAuth";
 import { S3Service } from "../services/uploader";
 import {
@@ -26,7 +27,6 @@ import {
 } from "../types/Club";
 import { Context } from "../types/Context";
 import { PostMutationResponse } from "../types/Post/PostMutationResponse";
-import { Vote } from "../entities/Vote";
 
 @Resolver(Club)
 export class ClubResolver {
@@ -463,8 +463,10 @@ export class ClubResolver {
         message: "Unauthorised",
       };
     }
-    const foundEvent = await ClubEvent.find();
-    await Vote.delete({ event: Any(foundEvent) });
+    const foundEvents = await ClubEvent.find();
+    for (let i = 0; i < foundEvents.length; i++) {
+      await Vote.delete({ event: foundEvents[i] });
+    }
 
     await ClubEvent.delete({ club: existingClub });
     await ClubMember.delete({ club: existingClub });
