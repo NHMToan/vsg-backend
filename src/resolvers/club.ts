@@ -11,7 +11,7 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { FindManyOptions } from "typeorm";
+import { Any, FindManyOptions } from "typeorm";
 import { CLUB_CREATE_KEY } from "../constants";
 import { Club } from "../entities/Club";
 import { ClubMember } from "../entities/ClubMember";
@@ -26,6 +26,7 @@ import {
 } from "../types/Club";
 import { Context } from "../types/Context";
 import { PostMutationResponse } from "../types/Post/PostMutationResponse";
+import { Vote } from "../entities/Vote";
 
 @Resolver(Club)
 export class ClubResolver {
@@ -462,6 +463,8 @@ export class ClubResolver {
         message: "Unauthorised",
       };
     }
+    const foundEvent = await ClubEvent.find();
+    await Vote.delete({ event: Any(foundEvent) });
 
     await ClubEvent.delete({ club: existingClub });
     await ClubMember.delete({ club: existingClub });
