@@ -385,7 +385,6 @@ export class VoteResolver {
         );
         if (!currentWaitingVoteCount || currentWaitingVoteCount === 0) {
           await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
           return {
             code: 200,
             success: true,
@@ -411,7 +410,7 @@ export class VoteResolver {
         const currentAvailableSlots = eventSlot - currentVoteCount;
         if (!currentAvailableSlots || currentAvailableSlots <= 0) {
           await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+
           return {
             code: 200,
             success: true,
@@ -422,11 +421,10 @@ export class VoteResolver {
         await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
 
         await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-        await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
       } else {
         await Vote.delete(foundVote.id);
         await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-        await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+
         return {
           code: 200,
           success: true,
@@ -504,7 +502,7 @@ export class VoteResolver {
 
         if (!currentWaitingVoteCount || currentWaitingVoteCount === 0) {
           await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+
           return {
             code: 200,
             success: true,
@@ -530,7 +528,7 @@ export class VoteResolver {
         const currentAvailableSlots = eventSlot - currentVoteCount;
         if (!currentAvailableSlots || currentAvailableSlots <= 0) {
           await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+
           return {
             code: 200,
             success: true,
@@ -541,13 +539,12 @@ export class VoteResolver {
         await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
 
         await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-        await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
       } else {
         foundVote.value = newValue;
         await foundVote.save();
 
         await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-        await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+
         return {
           code: 200,
           success: true,
@@ -713,9 +710,10 @@ export class VoteResolver {
             0
           );
           const currentAvailableSlots = eventSlot - currentVoteCount;
+
           if (!currentAvailableSlots || currentAvailableSlots <= 0) {
             await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-            await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
+
             return {
               code: 200,
               success: true,
@@ -732,10 +730,10 @@ export class VoteResolver {
             },
             relations: ["event", "member"],
           });
+
           await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
 
           await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
-          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
         }
 
         return {
@@ -752,8 +750,6 @@ export class VoteResolver {
             value: rangeValue,
           });
           await newVote.save();
-
-          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
 
           return {
             code: 200,
@@ -776,7 +772,6 @@ export class VoteResolver {
           });
 
           await reduceSlots(myCurrentWaitingVotes, rangeValue);
-          await sendEventCountPubsub(eventId, 2, notifyAboutNewVote);
 
           return {
             code: 200,

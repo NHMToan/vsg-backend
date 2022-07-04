@@ -7,8 +7,9 @@ export const updateConfirmedVote = async (
   waitingVotes: Vote[]
 ) => {
   let avaSlots = currentAvailableSlots;
+
   for (let i = 0; i < waitingVotes.length; i++) {
-    if (!avaSlots) break;
+    if (!avaSlots || avaSlots < 0) break;
 
     if (waitingVotes[i].value <= avaSlots) {
       waitingVotes[i].status = 1;
@@ -20,7 +21,7 @@ export const updateConfirmedVote = async (
 
       const newConfirmedVote = Vote.create({
         event: waitingVotes[i].event,
-        value: waitingVotes[i].value,
+        value: avaSlots,
         status: 1,
         member: waitingVotes[i].member,
       });
