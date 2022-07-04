@@ -55,8 +55,8 @@ export class UpdateClubInput {
   @Field()
   title: string;
 
-  @Field((_) => GraphQLUpload)
-  coverFile: FileUpload;
+  @Field((_) => GraphQLUpload, { nullable: true })
+  coverFile?: FileUpload;
 
   @Field()
   description: string;
