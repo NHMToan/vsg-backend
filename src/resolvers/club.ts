@@ -463,7 +463,9 @@ export class ClubResolver {
         message: "Unauthorised",
       };
     }
-    const foundEvents = await ClubEvent.find();
+    const foundEvents = await ClubEvent.find({
+      club: existingClub,
+    });
     for (let i = 0; i < foundEvents.length; i++) {
       await Vote.delete({ event: foundEvents[i] });
     }
