@@ -30,6 +30,14 @@ function addMinutes(numOfMinutes: number, date = new Date()) {
 
   return dateCopy;
 }
+function minusMinutes(numOfMinutes: number, date = new Date()) {
+  const dateCopy = new Date(date.getTime());
+
+  dateCopy.setMinutes(dateCopy.getMinutes() - numOfMinutes);
+
+  return dateCopy;
+}
+
 @Resolver(ClubEvent)
 export class ClubEventResolver {
   @FieldResolver((_return) => Boolean)
@@ -243,8 +251,9 @@ export class ClubEventResolver {
       });
 
       let foundEvents: ClubEvent[] = [];
-      const date = new Date();
+
       const beforeMinutes = addMinutes(5);
+      const afterMinutes = minusMinutes(60);
 
       for (let i = 0; i < clubMems.length; i++) {
         const clubEvents = await ClubEvent.find({
@@ -252,8 +261,9 @@ export class ClubEventResolver {
             club: {
               id: clubMems[i].clubId,
             },
-            end: MoreThan(date.toISOString()),
+            time: MoreThan(afterMinutes.toISOString()),
             start: LessThan(beforeMinutes.toISOString()),
+            status: 1,
           },
         });
         foundEvents.push(...clubEvents);

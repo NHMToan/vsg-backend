@@ -222,7 +222,21 @@ export class VoteResolver {
           success: false,
           message: "Event not found",
         };
-
+      const now = new Date();
+      if (now > new Date(foundEvent.end)) {
+        return {
+          code: 401,
+          success: false,
+          message: "Event voting is closed.",
+        };
+      }
+      if (now < new Date(foundEvent.start)) {
+        return {
+          code: 401,
+          success: false,
+          message: "Event voting has yet started.",
+        };
+      }
       const clubMem = await ClubMember.findOne({
         where: {
           profileId: user.profileId,
@@ -590,6 +604,22 @@ export class VoteResolver {
           success: false,
           message: "Event not found",
         };
+
+      const now = new Date();
+      if (now > new Date(foundEvent.end)) {
+        return {
+          code: 401,
+          success: false,
+          message: "Event voting is closed.",
+        };
+      }
+      if (now < new Date(foundEvent.start)) {
+        return {
+          code: 401,
+          success: false,
+          message: "Event voting has yet started.",
+        };
+      }
 
       const clubMem = await ClubMember.findOne({
         where: {
