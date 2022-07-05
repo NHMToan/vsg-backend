@@ -140,6 +140,9 @@ export class CreateEventInput {
 
   @Field({ nullable: true })
   isInstant: boolean;
+
+  @Field({ nullable: true })
+  price: number;
 }
 
 @InputType()
@@ -173,6 +176,9 @@ export class UpdateEventInput {
 
   @Field()
   maxVote: number;
+
+  @Field({ nullable: true })
+  price: number;
 }
 
 @InputType()

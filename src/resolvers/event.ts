@@ -170,6 +170,7 @@ export class ClubEventResolver {
       address,
       addressLink,
       maxVote,
+      price,
     }: UpdateEventInput,
     @Ctx() { user }: Context
   ): Promise<EventMutationResponse> {
@@ -219,6 +220,7 @@ export class ClubEventResolver {
     existingEvent.addressLink = addressLink;
     existingEvent.maxVote = maxVote;
     existingEvent.slot = slot;
+    existingEvent.price = price;
 
     await existingEvent.save();
 

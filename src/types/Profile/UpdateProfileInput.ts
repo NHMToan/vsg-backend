@@ -22,6 +22,9 @@ export class UpdateProfileInput {
   country: string;
 
   @Field({ nullable: true })
+  dob: string;
+
+  @Field({ nullable: true })
   role: string;
 
   @Field({ nullable: true })

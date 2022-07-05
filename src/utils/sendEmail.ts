@@ -6,15 +6,15 @@ export async function sendEmail(to: string, html: string) {
     service: "hotmail",
     auth: {
       user: "oneappplus@outlook.com",
-      pass: "w!=7G-C$Vk3^XU^",
+      pass: "$=RB9Nw7cLG;r)_",
     },
   });
 
   // send mail with defined transport object
   let info = await transporter.sendMail({
-    from: '"Oneapp mail" <oneappplus@outlook.com>',
+    from: '"VSG mail" <oneappplus@outlook.com>',
     to: to,
-    subject: "Oneapp - Forgot password",
+    subject: "VSG - Forgot password",
     html,
   });
 

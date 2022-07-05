@@ -272,6 +272,7 @@ export class ProfileResolver {
     existingProfile.twitterLink = args.twitterLink;
     existingProfile.portfolioLink = args.portfolioLink;
     existingProfile.school = args.school;
+    existingProfile.dob = args.dob;
 
     await existingProfile.save();
     return {

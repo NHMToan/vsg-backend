@@ -54,6 +54,10 @@ export class ClubEvent extends BaseEntity {
   addressLink: string;
 
   @Field({ nullable: true })
+  @Column({ nullable: true })
+  price: number;
+
+  @Field({ nullable: true })
   @Column({ nullable: true, default: 3 })
   maxVote: number;
 

@@ -89,6 +89,10 @@ export class Profile extends BaseEntity {
   @Column({ nullable: true })
   school: string;
 
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  dob: string;
+
   @Field()
   @Column({ default: 0 })
   follower: number;
