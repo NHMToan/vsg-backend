@@ -416,6 +416,50 @@ export class ClubResolver {
 
   @Mutation((_return) => ClubMutationResponse)
   @UseMiddleware(checkAuth)
+  async changeAdmin(
+    @Arg("id", (_type) => ID) id: string,
+    @Arg("clubId", (_type) => ID) clubId: string,
+    @Ctx() { user }: Context
+  ): Promise<PostMutationResponse> {
+    const foundClub = await Club.findOne(clubId);
+    if (foundClub?.adminId !== user.profileId) {
+      return {
+        code: 401,
+        success: false,
+        message: "Unauthenticated to change admin!",
+      };
+    }
+
+    const existingClubmember = await ClubMember.findOne({
+      where: {
+        id,
+      },
+      relations: ["profile"],
+    });
+
+    if (!existingClubmember)
+      return {
+        code: 400,
+        success: false,
+        message: "Clubmember not found",
+      };
+
+    foundClub.admin = existingClubmember.profile;
+
+    await foundClub.save();
+    existingClubmember.role = 2;
+    existingClubmember.status = 2;
+    await existingClubmember.save();
+
+    return {
+      code: 200,
+      success: true,
+      message: "Club admin is changed",
+    };
+  }
+
+  @Mutation((_return) => ClubMutationResponse)
+  @UseMiddleware(checkAuth)
   async cancelRequestClub(
     @Arg("clubId", (_type) => ID) clubId: string,
     @Ctx() { user }: Context
