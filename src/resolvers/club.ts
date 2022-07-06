@@ -417,7 +417,7 @@ export class ClubResolver {
   @Mutation((_return) => ClubMutationResponse)
   @UseMiddleware(checkAuth)
   async changeAdmin(
-    @Arg("id", (_type) => ID) id: string,
+    @Arg("memberId", (_type) => ID) memberId: string,
     @Arg("clubId", (_type) => ID) clubId: string,
     @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
@@ -432,7 +432,7 @@ export class ClubResolver {
 
     const existingClubmember = await ClubMember.findOne({
       where: {
-        id,
+        id: memberId,
       },
       relations: ["profile"],
     });
