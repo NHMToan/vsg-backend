@@ -123,6 +123,7 @@ const main = async () => {
       ClubMemberResolver,
       ClubEventResolver,
       VoteResolver,
+      GreetingResolver,
     ],
   });
   const wsServer = new WebSocketServer({
