@@ -24,6 +24,8 @@ import {
   UpdateEventInput,
 } from "../types/Club";
 import { Context } from "../types/Context";
+import orderBy from "lodash/orderBy";
+
 function addMinutes(numOfMinutes: number, date = new Date()) {
   const dateCopy = new Date(date.getTime());
 
@@ -287,7 +289,7 @@ export class ClubEventResolver {
 
       return {
         totalCount: foundEvents.length,
-        results: foundEvents,
+        results: orderBy(foundEvents, ["time"], ["asc"]),
         hasMore: false,
       };
     } catch (error) {
