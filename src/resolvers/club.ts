@@ -424,6 +424,7 @@ export class ClubResolver {
       };
 
     existingClubmember.status = 3;
+    existingClubmember.isKicked = true;
 
     await existingClubmember.save();
 
@@ -497,7 +498,14 @@ export class ClubResolver {
         message: "Clubmember not found",
       };
 
-    await ClubMember.delete({ id: existingClubmember.id });
+    if (existingClubmember.isKicked) {
+      existingClubmember.isKicked = true;
+      existingClubmember.status = 3;
+
+      await existingClubmember.save();
+    } else {
+      await ClubMember.delete({ id: existingClubmember.id });
+    }
 
     return {
       code: 200,
@@ -506,6 +514,33 @@ export class ClubResolver {
     };
   }
 
+  @Mutation((_return) => ClubMutationResponse)
+  @UseMiddleware(checkAuth)
+  async cancelRequest(
+    @Arg("memId", (_type) => ID) memId: string
+  ): Promise<PostMutationResponse> {
+    const existingClubmember = await ClubMember.findOne(memId);
+    if (!existingClubmember)
+      return {
+        code: 400,
+        success: false,
+        message: "Clubmember not found",
+      };
+    if (existingClubmember.isKicked) {
+      existingClubmember.isKicked = true;
+      existingClubmember.status = 3;
+
+      await existingClubmember.save();
+    } else {
+      await ClubMember.delete({ id: existingClubmember.id });
+    }
+
+    return {
+      code: 200,
+      success: true,
+      message: "Cancel request successfully",
+    };
+  }
   @Mutation((_return) => ClubMutationResponse)
   @UseMiddleware(checkAuth)
   async deleteClub(

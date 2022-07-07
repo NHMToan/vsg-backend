@@ -50,4 +50,8 @@ export class ClubMember extends BaseEntity {
   @RelationId((rate: ClubMember) => rate.club)
   @Column()
   clubId: string;
+
+  @Field({ nullable: true })
+  @Column({ default: false })
+  isKicked: boolean;
 }
