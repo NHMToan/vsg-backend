@@ -135,7 +135,7 @@ export class PostResolver {
   ): Promise<Posts | null> {
     try {
       const totalPostCount = await Post.count();
-      const realLimit = Math.min(50, limit);
+      const realLimit = limit || 50;
       const realOffset = offset || 0;
 
       const orderingField = ordering || "createdAt";

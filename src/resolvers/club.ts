@@ -180,7 +180,7 @@ export class ClubResolver {
   ): Promise<Clubs | null> {
     try {
       const totalPostCount = await Club.count();
-      const realLimit = Math.min(50, limit);
+      const realLimit = limit || 50;
       const realOffset = offset || 0;
 
       const orderingField = ordering || "createdAt";

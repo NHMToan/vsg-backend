@@ -42,7 +42,7 @@ export class FollowingResolver {
           followedTo: { id: profileId },
         },
       });
-      const realLimit = Math.min(50, limit);
+      const realLimit = limit || 50;
       const realOffset = offset || 0;
 
       const findOptions: FindManyOptions<Following> = {

@@ -183,7 +183,7 @@ export class ConversationResolver {
     @Ctx() { user }: Context
   ): Promise<Conversations | null> {
     try {
-      const realLimit = Math.min(50, limit || 50);
+      const realLimit = limit || 50;
       const realOffset = offset || 0;
 
       const conversations = await getRepository(Conversation)

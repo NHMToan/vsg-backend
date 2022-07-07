@@ -120,7 +120,7 @@ export class FriendResolver {
           },
         ],
       });
-      const realLimit = Math.min(50, limit);
+      const realLimit = limit || 50;
       const realOffset = offset || 0;
 
       let searchOption = {};

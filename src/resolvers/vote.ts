@@ -176,7 +176,7 @@ export class VoteResolver {
         },
       });
 
-      const realLimit = Math.min(100, limit);
+      const realLimit = limit || 50;
       const realOffset = offset || 0;
 
       const findOptions: FindManyOptions<Vote> = {

@@ -348,7 +348,7 @@ export class ClubEventResolver {
     @Arg("clubId", (_type) => String!) clubId: string
   ): Promise<Events | null> {
     try {
-      const realLimit = Math.min(50, limit);
+      const realLimit = limit || 50;
       const realOffset = offset || 0;
 
       const club = await Club.findOne(clubId);

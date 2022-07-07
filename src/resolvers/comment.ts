@@ -84,7 +84,7 @@ export class CommentResolver {
       });
       const totalPostCount = foundComments.length;
 
-      const realLimit = Math.min(50, limit);
+      const realLimit = limit || 50;
       const realOffset = offset || 0;
 
       const orderingField = ordering || "-createdAt";
