@@ -1,3 +1,4 @@
+import { updateConfirmedVote } from "../utils/event";
 import {
   Arg,
   Ctx,
@@ -190,6 +191,7 @@ export class ClubEventResolver {
         success: false,
         message: "Event not found",
       };
+
     const foundMem = await ClubMember.findOne({
       where: {
         clubId: existingEvent.clubId,
@@ -214,7 +216,7 @@ export class ClubEventResolver {
       return {
         code: 400,
         success: false,
-        message: "Slots can not lower than the current confirmed slots",
+        message: "Slots can not be lower than the current confirmed slots",
       };
     }
 
@@ -231,6 +233,20 @@ export class ClubEventResolver {
     existingEvent.price = price;
 
     await existingEvent.save();
+
+    const currentAvailableSlots = slot - voteCount;
+    const foundWaitingVotes = await Vote.find({
+      order: {
+        createdAt: "ASC",
+      },
+      where: {
+        event: existingEvent,
+        status: 2,
+      },
+      relations: ["event", "member"],
+    });
+
+    await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
 
     return {
       code: 200,
