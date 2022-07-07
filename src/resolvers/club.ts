@@ -314,11 +314,15 @@ export class ClubResolver {
       relations: ["club", "profile"],
     });
     if (foundRequest) {
-      return {
-        code: 400,
-        success: false,
-        message: "Request has been already sent",
-      };
+      if (foundRequest.status === 3) {
+        foundRequest.status = 1;
+
+        await foundRequest.save();
+
+        return { code: 200, success: true, message: "Request sent!" };
+      } else {
+        return { code: 400, success: false, message: "Request has sent!" };
+      }
     }
 
     const newRequest = ClubMember.create({
@@ -419,7 +423,9 @@ export class ClubResolver {
         message: "Clubmember not found",
       };
 
-    await ClubMember.delete({ id });
+    existingClubmember.status = 3;
+
+    await existingClubmember.save();
 
     return {
       code: 200,

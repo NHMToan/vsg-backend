@@ -46,13 +46,15 @@ export class ClubMemberResolver {
     @Arg("role", (_type) => Int!, { nullable: true }) role: number
   ): Promise<Clubmembers | null> {
     try {
-      console.log(role);
+      const options: any = {
+        clubId: clubId,
+        status,
+      };
+      if (role) {
+        options.role = role;
+      }
       const totalPostCount = await ClubMember.count({
-        where: {
-          clubId: clubId,
-          status,
-          role: role || null,
-        },
+        where: options,
       });
       const realLimit = limit || 50;
       const realOffset = offset || 0;
@@ -60,11 +62,7 @@ export class ClubMemberResolver {
       const findOptions: FindManyOptions<ClubMember> = {
         take: realLimit,
         skip: realOffset,
-        where: {
-          clubId: clubId,
-          status,
-          role: role || null,
-        },
+        where: options,
       };
 
       const clubmems = await ClubMember.find(findOptions);
