@@ -42,6 +42,7 @@ export class ClubResolver {
 
     return count || 0;
   }
+
   @FieldResolver((_return) => Boolean)
   @UseMiddleware(checkAuth)
   async isRequesting(@Root() root: Club, @Ctx() { user }: Context) {
@@ -72,6 +73,19 @@ export class ClubResolver {
     });
     if (foundMember) return true;
     return false;
+  }
+
+  @Query((_return) => Number, { nullable: true })
+  async getClubRequestingNumber(
+    @Arg("clubId", (_type) => ID) clubId: string
+  ): Promise<Number> {
+    const count = await ClubMember.count({
+      where: {
+        clubId,
+        status: 1,
+      },
+    });
+    return count;
   }
 
   @FieldResolver((_return) => Boolean)
