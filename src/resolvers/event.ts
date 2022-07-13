@@ -116,6 +116,27 @@ export class ClubEventResolver {
     if (foundVote) return foundVote;
     return null;
   }
+
+  @Query((_return) => Boolean)
+  @UseMiddleware(checkAuth)
+  async getEventIsVoted(
+    @Arg("eventId", (_type) => ID) eventId: string,
+    @Ctx() { user }: Context
+  ) {
+    const foundClubMember = await ClubMember.findOne({
+      profileId: user.profileId,
+    });
+    const foundVote = await Vote.findOne({
+      where: {
+        event: { id: eventId },
+        member: foundClubMember,
+        status: 1,
+      },
+    });
+    if (foundVote) return true;
+    return false;
+  }
+
   @Mutation((_return) => EventMutationResponse)
   @UseMiddleware(checkAuth)
   async createEvent(

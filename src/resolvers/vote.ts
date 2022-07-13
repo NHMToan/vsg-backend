@@ -711,20 +711,27 @@ export class VoteResolver {
           };
         } else {
           //*******/ Down
-
           // Reduce confirmed slots
-          const myCurrentConfirmedVotes = await Vote.find({
-            order: {
-              createdAt: "DESC",
-            },
-            where: {
+          if (newValue === 0) {
+            await Vote.delete({
               event: foundEvent,
               member: clubMem,
               status: 1,
-            },
-          });
+            });
+          } else {
+            const myCurrentConfirmedVotes = await Vote.find({
+              order: {
+                createdAt: "DESC",
+              },
+              where: {
+                event: foundEvent,
+                member: clubMem,
+                status: 1,
+              },
+            });
 
-          await reduceSlots(myCurrentConfirmedVotes, rangeValue);
+            await reduceSlots(myCurrentConfirmedVotes, rangeValue);
+          }
 
           // Update confirmed slot from waiting list
           const foundVotes = await Vote.find({
@@ -789,19 +796,26 @@ export class VoteResolver {
         } else {
           //*******/ Down
 
-          // Reduce confirmed slots
-          const myCurrentWaitingVotes = await Vote.find({
-            order: {
-              createdAt: "DESC",
-            },
-            where: {
+          if (newValue === 0) {
+            await Vote.delete({
               event: foundEvent,
               member: clubMem,
               status: 2,
-            },
-          });
-
-          await reduceSlots(myCurrentWaitingVotes, rangeValue);
+            });
+          } else {
+            // Reduce confirmed slots
+            const myCurrentWaitingVotes = await Vote.find({
+              order: {
+                createdAt: "DESC",
+              },
+              where: {
+                event: foundEvent,
+                member: clubMem,
+                status: 2,
+              },
+            });
+            await reduceSlots(myCurrentWaitingVotes, rangeValue);
+          }
 
           return {
             code: 200,
