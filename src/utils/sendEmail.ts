@@ -6,8 +6,11 @@ export async function sendEmail(to: string, html: string) {
     service: "gmail",
     auth: {
       user: "vietsportmates@gmail.com",
-      pass: "5722ThiDungStrongPasswordNe@aaa",
+      pass: "qquhfavxfchcusyb",
     },
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
   });
 
   // send mail with defined transport object
