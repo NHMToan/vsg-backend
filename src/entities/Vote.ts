@@ -47,6 +47,10 @@ export class Vote extends BaseEntity {
   @ManyToOne((_type) => ClubEvent)
   event: ClubEvent;
 
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  paid!: string;
+
   @RelationId((vote: Vote) => vote.event)
   eventId: string;
 }

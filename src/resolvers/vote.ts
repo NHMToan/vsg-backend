@@ -29,6 +29,7 @@ import { checkAuth } from "../middleware/checkAuth";
 import {
   CreateVoteInput,
   EventMutationResponse,
+  EventVoteMutationResponse,
   NewVoteArgs,
   NewVotePayload,
   NewVoteSubscriptionData,
@@ -346,6 +347,44 @@ export class VoteResolver {
       }
     } catch (error) {
       console.log(error);
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
+    }
+  }
+
+  @Mutation((_return) => EventVoteMutationResponse)
+  @UseMiddleware(checkAuth)
+  async voteChangePaid(
+    @Arg("voteId", (_type) => ID)
+    voteId: string,
+    @Arg("payStatus", (_type) => String)
+    payStatus: string
+  ): Promise<EventVoteMutationResponse> {
+    try {
+      const foundVote = await Vote.findOne({
+        where: { id: voteId },
+        relations: ["event"],
+      });
+      if (!foundVote)
+        return {
+          code: 400,
+          success: false,
+          message: "Vote not found.",
+        };
+
+      foundVote.paid = payStatus;
+
+      await foundVote.save();
+      return {
+        code: 200,
+        success: true,
+        message: "Pay status is changed!",
+        vote: foundVote,
+      };
+    } catch (error) {
       return {
         code: 500,
         success: false,
