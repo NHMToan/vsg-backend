@@ -51,6 +51,10 @@ export class Vote extends BaseEntity {
   @Column({ nullable: true })
   paid!: string;
 
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  note!: string;
+
   @RelationId((vote: Vote) => vote.event)
   eventId: string;
 }

@@ -392,7 +392,43 @@ export class VoteResolver {
       };
     }
   }
+  @Mutation((_return) => EventVoteMutationResponse)
+  @UseMiddleware(checkAuth)
+  async noteVote(
+    @Arg("voteId", (_type) => ID)
+    voteId: string,
+    @Arg("note", (_type) => String)
+    note: string
+  ): Promise<EventVoteMutationResponse> {
+    try {
+      const foundVote = await Vote.findOne({
+        where: { id: voteId },
+        relations: ["event"],
+      });
+      if (!foundVote)
+        return {
+          code: 400,
+          success: false,
+          message: "Vote not found.",
+        };
 
+      foundVote.note = note;
+
+      await foundVote.save();
+      return {
+        code: 200,
+        success: true,
+        message: "Note is changed!",
+        vote: foundVote,
+      };
+    } catch (error) {
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
+    }
+  }
   @Mutation((_return) => EventMutationResponse)
   @UseMiddleware(checkAuth)
   async unVoteEvent(
