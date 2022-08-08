@@ -24,6 +24,10 @@ export class ClubMember extends BaseEntity {
   role!: number;
 
   @Field()
+  @Column({ default: false, nullable: true })
+  isAdvanced!: boolean;
+
+  @Field()
   @Column()
   status!: number;
 

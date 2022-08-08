@@ -383,7 +383,7 @@ export class ClubResolver {
     @Arg("id", (_type) => ID) id: string,
     @Arg("role", (_type) => Int) role: number,
     @Ctx() { user }: Context
-  ): Promise<PostMutationResponse> {
+  ): Promise<ClubMutationResponse> {
     const existingClubMember = await ClubMember.findOne(id);
 
     if (!existingClubMember)

@@ -1,11 +1,11 @@
 import { FileUpload, GraphQLUpload } from "graphql-upload";
-import { ClubEvent } from "../../entities/ClubEvent";
 import { ArgsType, Field, ID, InputType, Int, ObjectType } from "type-graphql";
 import { Club } from "../../entities/Club";
+import { ClubEvent } from "../../entities/ClubEvent";
 import { ClubMember } from "../../entities/ClubMember";
+import { Vote } from "../../entities/Vote";
 import { FieldError } from "../FieldError";
 import { IMutationResponse } from "../MutationResponse";
-import { Vote } from "../../entities/Vote";
 
 @ObjectType({ implements: IMutationResponse })
 export class ClubMutationResponse implements IMutationResponse {
@@ -15,6 +15,19 @@ export class ClubMutationResponse implements IMutationResponse {
 
   @Field({ nullable: true })
   club?: Club;
+
+  @Field((_type) => [FieldError], { nullable: true })
+  errors?: FieldError[];
+}
+
+@ObjectType({ implements: IMutationResponse })
+export class ClubMemberMutationResponse implements IMutationResponse {
+  code: number;
+  success: boolean;
+  message?: string;
+
+  @Field({ nullable: true })
+  clubMember?: ClubMember;
 
   @Field((_type) => [FieldError], { nullable: true })
   errors?: FieldError[];
