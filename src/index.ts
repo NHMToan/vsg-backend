@@ -169,8 +169,8 @@ const main = async () => {
     cors: {
       origin: [
         "http://localhost:3000",
-        "https://www.vietsportmates.top",
         "https://vietsportmates.top",
+        "https://www.vietsportmates.top",
       ],
       credentials: true,
     },
