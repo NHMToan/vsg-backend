@@ -16,6 +16,7 @@ import { buildSchema } from "type-graphql";
 import { createConnection } from "typeorm";
 import { WebSocketServer } from "ws";
 import { __prod__ } from "./constants";
+import { Admin } from "./entities/Admin";
 import { Club } from "./entities/Club";
 import { ClubEvent } from "./entities/ClubEvent";
 import { ClubMember } from "./entities/ClubMember";
@@ -29,6 +30,7 @@ import { Post } from "./entities/Post";
 import { Profile } from "./entities/Profile";
 import { User } from "./entities/User";
 import { Vote } from "./entities/Vote";
+import { AdminResolver } from "./resolvers/admin";
 import { ConversationResolver } from "./resolvers/chat";
 import { ClubResolver } from "./resolvers/club";
 import { ClubMemberResolver } from "./resolvers/clubmember";
@@ -84,6 +86,7 @@ const main = async () => {
       EventHistory,
       ClubEvent,
       Vote,
+      Admin,
     ],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
@@ -97,6 +100,8 @@ const main = async () => {
         "http://localhost:3000",
         "https://www.vietsportmates.top",
         "https://vietsportmates.top",
+        "https://www.admin.vietsportmates.top",
+        "https://admin.vietsportmates.top",
       ],
       credentials: true,
     })
@@ -124,6 +129,7 @@ const main = async () => {
       ClubEventResolver,
       VoteResolver,
       GreetingResolver,
+      AdminResolver,
     ],
   });
   const wsServer = new WebSocketServer({
