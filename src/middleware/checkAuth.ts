@@ -48,7 +48,7 @@ export const checkAdminAuth: MiddlewareFn<AdminContext> = (
 
     const decodedUser = verify(
       accessToken,
-      process.env.ACCESS_TOKEN_SECRET as Secret
+      process.env.ADMIN_ACCESS_TOKEN_SECRET as Secret
     ) as AdminAuthPayload;
 
     context.user = decodedUser;

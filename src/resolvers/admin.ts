@@ -124,7 +124,7 @@ export class AdminResolver {
 
   @Mutation((_return) => AdminMutationResponse)
   async adminLogout(
-    @Arg("userId", (_type) => ID) userId: number,
+    @Arg("userId", (_type) => ID) userId: string,
     @Ctx() { res }: AdminContext
   ): Promise<AdminMutationResponse> {
     const existingUser = await Admin.findOne(userId);
@@ -138,11 +138,11 @@ export class AdminResolver {
 
     await existingUser.save();
 
-    res.clearCookie(process.env.REFRESH_TOKEN_COOKIE_NAME as string, {
+    res.clearCookie(process.env.ADMIN_REFRESH_TOKEN_COOKIE_NAME as string, {
       httpOnly: true,
       secure: __prod__,
       sameSite: "lax",
-      path: "/refresh_token",
+      path: "/admin_refresh_token",
     });
 
     return { code: 200, success: true };
