@@ -12,8 +12,8 @@ export const createAdminToken = (
       userId: user.id,
     },
     type === "accessToken"
-      ? (process.env.ACCESS_TOKEN_SECRET as Secret)
-      : (process.env.REFRESH_TOKEN_SECRET as Secret),
+      ? (process.env.ADMIN_ACCESS_TOKEN_SECRET as Secret)
+      : (process.env.ADMIN_REFRESH_TOKEN_SECRET as Secret),
     {
       expiresIn: type === "accessToken" ? "7d" : "14d",
     }
