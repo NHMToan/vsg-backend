@@ -44,6 +44,7 @@ import { PostResolver } from "./resolvers/post";
 import { ProfileResolver } from "./resolvers/profile";
 import { UserResolver } from "./resolvers/user";
 import { VoteResolver } from "./resolvers/vote";
+import adminRefreshTokenRouter from "./routes/adminRefreshTokenRouter";
 import refreshTokenRouter from "./routes/refreshTokenRouter";
 import { Context } from "./types/Context";
 import { buildDataLoaders } from "./utils/dataLoaders";
@@ -109,6 +110,7 @@ const main = async () => {
   app.use(cookieParser());
 
   app.use("/refresh_token", refreshTokenRouter);
+  app.use("/admin_refresh_token", adminRefreshTokenRouter);
 
   const httpServer = createServer(app);
 
