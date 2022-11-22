@@ -1,9 +1,4 @@
 import {
-  reduceSlots,
-  sendEventCountPubsub,
-  updateConfirmedVote,
-} from "../utils/event";
-import {
   Arg,
   Args,
   Ctx,
@@ -37,6 +32,13 @@ import {
   Votes,
 } from "../types/Club";
 import { Context } from "../types/Context";
+import { NewNotiPayload } from "../types/Notification";
+import {
+  reduceSlots,
+  sendEventCountPubsub,
+  updateConfirmedVote,
+} from "../utils/event";
+import { createNotification } from "../utils/notification";
 
 @Resolver(Vote)
 export class VoteResolver {
@@ -668,7 +670,8 @@ export class VoteResolver {
     @Arg("newValue", (_type) => Int)
     newValue: number,
     @Ctx() { user }: Context,
-    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>
+    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
+    @PubSub(Topic.NewNotification) newNoti: Publisher<NewNotiPayload>
   ): Promise<EventMutationResponse> {
     try {
       const foundEvent = await ClubEvent.findOne(eventId);
@@ -701,6 +704,7 @@ export class VoteResolver {
           profileId: user.profileId,
           clubId: foundEvent.clubId,
         },
+        relations: ["profile"],
       });
       if (!clubMem || clubMem.status !== 2)
         return {
@@ -808,6 +812,27 @@ export class VoteResolver {
             await reduceSlots(myCurrentConfirmedVotes, rangeValue);
           }
 
+          const admins = await ClubMember.find({
+            where: {
+              clubId: foundEvent.clubId,
+              role: 2,
+            },
+          });
+
+          //Send Notes to Admins
+          createNotification(
+            newNoti,
+            admins
+              .filter((ad) => ad.profileId !== user.profileId)
+              .map((ad) => ad.profileId),
+            {
+              messageKey: "remove_confirm_vote",
+              actorAvatar: clubMem.profile.avatar,
+              actionObject: foundEvent.title,
+              actorName: clubMem.profile.displayName,
+              amount: rangeValue,
+            }
+          );
           // Update confirmed slot from waiting list
           const foundVotes = await Vote.find({
             where: {
@@ -843,7 +868,12 @@ export class VoteResolver {
             relations: ["event", "member"],
           });
 
-          await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
+          await updateConfirmedVote(
+            currentAvailableSlots,
+            foundWaitingVotes,
+            newNoti,
+            foundEvent
+          );
 
           await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
         }

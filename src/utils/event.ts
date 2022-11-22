@@ -1,10 +1,13 @@
-import { NewVotePayload } from "../types/Club";
 import { Publisher } from "type-graphql";
 import { Vote } from "../entities/Vote";
+import { NewVotePayload } from "../types/Club";
+import { createNotification } from "./notification";
 
 export const updateConfirmedVote = async (
   currentAvailableSlots: number,
-  waitingVotes: Vote[]
+  waitingVotes: Vote[],
+  pubsub: any = null,
+  event: any = null
 ) => {
   let avaSlots = currentAvailableSlots;
 
@@ -14,6 +17,12 @@ export const updateConfirmedVote = async (
     if (waitingVotes[i].value <= avaSlots) {
       waitingVotes[i].status = 1;
       await waitingVotes[i].save();
+
+      createNotification(pubsub, [waitingVotes[i].member.profileId], {
+        messageKey: "confirm_waiting_slot",
+        actionObject: event.title,
+        amount: waitingVotes[i].value,
+      });
     }
     if (waitingVotes[i].value > avaSlots) {
       waitingVotes[i].value = waitingVotes[i].value - avaSlots;
@@ -25,7 +34,14 @@ export const updateConfirmedVote = async (
         status: 1,
         member: waitingVotes[i].member,
       });
+
       await newConfirmedVote.save();
+
+      createNotification(pubsub, [waitingVotes[i].member.profileId], {
+        messageKey: "confirm_waiting_slot",
+        actionObject: event.title,
+        amount: avaSlots,
+      });
     }
     avaSlots -= waitingVotes[i].value;
   }
@@ -36,13 +52,13 @@ export const reduceSlots = async (
   reduceValue: number
 ) => {
   let slots = reduceValue;
+
   if (currentConfirmedVote.length === 1) {
-    console.log("ZOOOO dayyyy", slots);
     if (currentConfirmedVote[0].value === slots) {
       await Vote.delete(currentConfirmedVote[0].id);
       return;
     }
-    currentConfirmedVote[0].value = slots;
+    currentConfirmedVote[0].value -= reduceValue;
     await currentConfirmedVote[0].save();
     return;
   }
@@ -51,7 +67,7 @@ export const reduceSlots = async (
     if (!slots || slots < 0) return;
 
     if (currentConfirmedVote[i].value > slots) {
-      currentConfirmedVote[i].value = slots;
+      currentConfirmedVote[i].value -= slots;
       await currentConfirmedVote[i].save();
       return;
     } else {

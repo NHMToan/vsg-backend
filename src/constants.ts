@@ -7,4 +7,5 @@ export enum Topic {
   NewConversation = "NEW_CONVERSATION",
   ConversationChanged = "CONVERSATION_CHANGED",
   EventChanged = "EVENT_CHANGE",
+  NewNotification = "NEW_NOTIFICATION",
 }

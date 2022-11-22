@@ -26,9 +26,11 @@ import { EventHistory } from "./entities/EventHistory";
 import { Following } from "./entities/Following";
 import { Friendship } from "./entities/Friendship";
 import { Message } from "./entities/Message";
+import { Notification } from "./entities/Notification";
 import { Post } from "./entities/Post";
 import { Profile } from "./entities/Profile";
 import { User } from "./entities/User";
+import { UserNotification } from "./entities/UserNotification";
 import { Vote } from "./entities/Vote";
 import { AdminResolver } from "./resolvers/admin";
 import { ConversationResolver } from "./resolvers/chat";
@@ -40,6 +42,7 @@ import { FollowingResolver } from "./resolvers/following";
 import { FriendResolver } from "./resolvers/friend";
 import { GreetingResolver } from "./resolvers/greeting";
 import { MessageResolver } from "./resolvers/message";
+import { NotificationResolver } from "./resolvers/notification";
 import { PostResolver } from "./resolvers/post";
 import { ProfileResolver } from "./resolvers/profile";
 import { UserResolver } from "./resolvers/user";
@@ -88,6 +91,8 @@ const main = async () => {
       ClubEvent,
       Vote,
       Admin,
+      Notification,
+      UserNotification,
     ],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
@@ -132,6 +137,7 @@ const main = async () => {
       VoteResolver,
       GreetingResolver,
       AdminResolver,
+      NotificationResolver,
     ],
   });
   const wsServer = new WebSocketServer({
@@ -170,7 +176,7 @@ const main = async () => {
 
   await apolloServer.start();
 
-  app.use(graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 10 }));
+  app.use(graphqlUploadExpress({ maxFileSize: 3145728, maxFiles: 10 }));
 
   apolloServer.applyMiddleware({
     app,

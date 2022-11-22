@@ -1,3 +1,4 @@
+import { NewNotiPayload } from "src/types/Notification";
 import {
   Arg,
   Ctx,
@@ -5,13 +6,15 @@ import {
   ID,
   Int,
   Mutation,
+  Publisher,
+  PubSub,
   Query,
   Resolver,
   Root,
   UseMiddleware,
 } from "type-graphql";
 import { FindManyOptions } from "typeorm";
-import { CLUB_CREATE_KEY } from "../constants";
+import { CLUB_CREATE_KEY, Topic } from "../constants";
 import { Club } from "../entities/Club";
 import { ClubEvent } from "../entities/ClubEvent";
 import { ClubMember } from "../entities/ClubMember";
@@ -27,6 +30,7 @@ import {
 } from "../types/Club";
 import { Context } from "../types/Context";
 import { PostMutationResponse } from "../types/Post/PostMutationResponse";
+import { createNotification } from "../utils/notification";
 
 @Resolver(Club)
 export class ClubResolver {
@@ -287,7 +291,8 @@ export class ClubResolver {
   @UseMiddleware(checkAuth)
   async requestJoinClub(
     @Arg("id", (_type) => ID) id: string,
-    @Ctx() { user }: Context
+    @Ctx() { user }: Context,
+    @PubSub(Topic.NewNotification) newNoti: Publisher<NewNotiPayload>
   ): Promise<PostMutationResponse> {
     const existingUser = await Profile.findOne(user.profileId);
 
@@ -333,6 +338,23 @@ export class ClubResolver {
 
     await newRequest.save();
 
+    const clubAdmins = await ClubMember.find({
+      where: {
+        role: 2,
+        club: existingClub,
+      },
+    });
+    createNotification(
+      newNoti,
+      clubAdmins.map((item) => item.profileId),
+      {
+        messageKey: "apply_club",
+        actorAvatar: existingUser.avatar,
+        actionObject: existingClub.title,
+        actorName: existingUser.displayName,
+      }
+    );
+
     return { code: 200, success: true, message: "Request sent!" };
   }
 
@@ -340,7 +362,8 @@ export class ClubResolver {
   @UseMiddleware(checkAuth)
   async acceptJoin(
     @Arg("id", (_type) => ID) id: string,
-    @Ctx() { user }: Context
+    @Ctx() { user }: Context,
+    @PubSub(Topic.NewNotification) newNoti: Publisher<NewNotiPayload>
   ): Promise<PostMutationResponse> {
     const existingClubMember = await ClubMember.findOne(id);
 
@@ -352,6 +375,13 @@ export class ClubResolver {
       };
 
     const existingClub = await Club.findOne(existingClubMember?.clubId);
+    if (!existingClub) {
+      return {
+        code: 400,
+        success: false,
+        message: "Club is not exist",
+      };
+    }
     const hasAuth = await ClubMember.findOne({
       where: {
         profileId: user.profileId,
@@ -373,6 +403,10 @@ export class ClubResolver {
     existingClubMember.role = 1;
 
     await existingClubMember.save();
+    createNotification(newNoti, [existingClubMember.profileId], {
+      messageKey: "accept_join_club",
+      actionObject: existingClub.title,
+    });
 
     return { code: 200, success: true, message: "Accept!" };
   }
