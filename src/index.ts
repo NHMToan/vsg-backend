@@ -29,6 +29,9 @@ import { Message } from "./entities/Message";
 import { Notification } from "./entities/Notification";
 import { Post } from "./entities/Post";
 import { Profile } from "./entities/Profile";
+import { Rating } from "./entities/Rating";
+import { RatingCandidate } from "./entities/RatingCandidate";
+import { RatingVote } from "./entities/RatingVote";
 import { User } from "./entities/User";
 import { UserNotification } from "./entities/UserNotification";
 import { Vote } from "./entities/Vote";
@@ -45,6 +48,9 @@ import { MessageResolver } from "./resolvers/message";
 import { NotificationResolver } from "./resolvers/notification";
 import { PostResolver } from "./resolvers/post";
 import { ProfileResolver } from "./resolvers/profile";
+import { RatingResolver } from "./resolvers/rating";
+import { RatingCandidateResolver } from "./resolvers/ratingCandidate";
+import { RatingVoteResolver } from "./resolvers/ratingVote";
 import { UserResolver } from "./resolvers/user";
 import { VoteResolver } from "./resolvers/vote";
 import adminRefreshTokenRouter from "./routes/adminRefreshTokenRouter";
@@ -93,6 +99,9 @@ const main = async () => {
       Admin,
       Notification,
       UserNotification,
+      Rating,
+      RatingCandidate,
+      RatingVote,
     ],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
@@ -138,6 +147,9 @@ const main = async () => {
       GreetingResolver,
       AdminResolver,
       NotificationResolver,
+      RatingResolver,
+      RatingCandidateResolver,
+      RatingVoteResolver,
     ],
   });
   const wsServer = new WebSocketServer({

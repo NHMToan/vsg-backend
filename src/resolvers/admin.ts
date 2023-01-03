@@ -229,4 +229,40 @@ export class AdminResolver {
       message: "Password is changed successfully!",
     };
   }
+
+  @Mutation(() => UserMutationResponse)
+  @UseMiddleware(checkAdminAuth)
+  async adminSetRole(
+    @Arg("userId", (_type) => ID) userId: string,
+    @Arg("newRole") newRole: string
+  ): Promise<UserMutationResponse> {
+    if (!userId) {
+      return {
+        code: 400,
+        success: false,
+        message: "Wrong user",
+      };
+    }
+    const user = await User.findOne(userId);
+    if (!user) {
+      return {
+        code: 400,
+        success: false,
+        message: "User is no longer exists",
+      };
+    }
+
+    await User.update(
+      { id: userId },
+      {
+        role: newRole,
+      }
+    );
+
+    return {
+      code: 200,
+      success: true,
+      message: "Role is changed successfully!",
+    };
+  }
 }

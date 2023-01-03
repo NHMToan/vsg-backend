@@ -32,6 +32,7 @@ export const checkAuth: MiddlewareFn<Context> = ({ context }, next) => {
     );
   }
 };
+
 export const checkAdminAuth: MiddlewareFn<AdminContext> = (
   { context },
   next

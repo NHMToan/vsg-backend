@@ -120,7 +120,7 @@ export class UserResolver {
 
   @Mutation((_return) => UserMutationResponse)
   async fbLogin(
-    @Arg("fbLoginInput") { id, name, picture }: FBLoginInput,
+    @Arg("fbLoginInput") { id, name }: FBLoginInput,
     @Ctx() { res }: Context
   ): Promise<UserMutationResponse> {
     try {
@@ -134,7 +134,6 @@ export class UserResolver {
       if (!existingUser) {
         const newProfile = Profile.create({});
         newProfile.displayName = name;
-        if (picture) newProfile.avatar = picture;
 
         await newProfile.save();
 
