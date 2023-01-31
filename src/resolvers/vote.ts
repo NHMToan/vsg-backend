@@ -440,9 +440,19 @@ export class VoteResolver {
     eventId: string,
     @Arg("eventSlot", (_type) => Int)
     eventSlot: number,
-    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>
+    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
+    @PubSub(Topic.NewNotification) newNoti: Publisher<NewNotiPayload>
   ): Promise<EventMutationResponse> {
     try {
+      const foundEvent = await ClubEvent.findOne(eventId);
+
+      if (!foundEvent)
+        return {
+          code: 400,
+          success: false,
+          message: "Event not found",
+        };
+
       const foundVote = await Vote.findOne({
         where: { id: voteId },
         relations: ["event"],
@@ -509,7 +519,12 @@ export class VoteResolver {
           };
         }
 
-        await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
+        await updateConfirmedVote(
+          currentAvailableSlots,
+          foundWaitingVotes,
+          newNoti,
+          foundEvent
+        );
 
         await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
       } else {
@@ -548,9 +563,19 @@ export class VoteResolver {
     eventSlot: number,
     @Arg("newValue", (_type) => Int)
     newValue: number,
-    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>
+    @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
+    @PubSub(Topic.NewNotification) newNoti: Publisher<NewNotiPayload>
   ): Promise<EventMutationResponse> {
     try {
+      const foundEvent = await ClubEvent.findOne(eventId);
+
+      if (!foundEvent)
+        return {
+          code: 400,
+          success: false,
+          message: "Event not found",
+        };
+
       const foundVote = await Vote.findOne({
         where: { id: voteId },
         relations: ["event"],
@@ -627,7 +652,12 @@ export class VoteResolver {
           };
         }
 
-        await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
+        await updateConfirmedVote(
+          currentAvailableSlots,
+          foundWaitingVotes,
+          newNoti,
+          foundEvent
+        );
 
         await sendEventCountPubsub(eventId, 1, notifyAboutNewVote);
       } else {

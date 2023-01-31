@@ -1,4 +1,4 @@
-import { updateConfirmedVote } from "../utils/event";
+import orderBy from "lodash/orderBy";
 import {
   Arg,
   Ctx,
@@ -6,12 +6,15 @@ import {
   ID,
   Int,
   Mutation,
+  Publisher,
+  PubSub,
   Query,
   Resolver,
   Root,
   UseMiddleware,
 } from "type-graphql";
 import { Between, LessThan, MoreThan } from "typeorm";
+import { Topic } from "../constants";
 import { Club } from "../entities/Club";
 import { ClubEvent } from "../entities/ClubEvent";
 import { ClubMember } from "../entities/ClubMember";
@@ -24,8 +27,8 @@ import {
   UpdateEventInput,
 } from "../types/Club";
 import { Context } from "../types/Context";
-import orderBy from "lodash/orderBy";
-
+import { NewNotiPayload } from "../types/Notification";
+import { updateConfirmedVote } from "../utils/event";
 function addMinutes(numOfMinutes: number, date = new Date()) {
   const dateCopy = new Date(date.getTime());
 
@@ -204,7 +207,8 @@ export class ClubEventResolver {
       maxVote,
       price,
     }: UpdateEventInput,
-    @Ctx() { user }: Context
+    @Ctx() { user }: Context,
+    @PubSub(Topic.NewNotification) newNoti: Publisher<NewNotiPayload>
   ): Promise<EventMutationResponse> {
     const existingEvent = await ClubEvent.findOne(id);
 
@@ -269,7 +273,12 @@ export class ClubEventResolver {
       relations: ["event", "member"],
     });
 
-    await updateConfirmedVote(currentAvailableSlots, foundWaitingVotes);
+    await updateConfirmedVote(
+      currentAvailableSlots,
+      foundWaitingVotes,
+      newNoti,
+      existingEvent
+    );
 
     return {
       code: 200,

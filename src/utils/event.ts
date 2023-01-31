@@ -9,41 +9,44 @@ export const updateConfirmedVote = async (
   pubsub: any = null,
   event: any = null
 ) => {
-  let avaSlots = currentAvailableSlots;
+  let availableSlots = currentAvailableSlots;
 
-  for (let i = 0; i < waitingVotes.length; i++) {
-    if (!avaSlots || avaSlots < 0) break;
+  for (const vote of waitingVotes) {
+    if (!availableSlots || availableSlots <= 0) break;
 
-    if (waitingVotes[i].value <= avaSlots) {
-      waitingVotes[i].status = 1;
-      await waitingVotes[i].save();
+    if (vote.value <= availableSlots) {
+      vote.status = 1;
+      await vote.save();
 
-      createNotification(pubsub, [waitingVotes[i].member.profileId], {
+      createNotification(pubsub, [vote.member.profileId], {
         messageKey: "confirm_waiting_slot",
-        actionObject: event.title,
-        amount: waitingVotes[i].value,
+        actionObject: event?.title,
+        amount: vote.value,
       });
-    }
-    if (waitingVotes[i].value > avaSlots) {
-      waitingVotes[i].value = waitingVotes[i].value - avaSlots;
-      await waitingVotes[i].save();
+
+      availableSlots -= vote.value;
+    } else {
+      const confirmedVoteValue = availableSlots;
+      vote.value -= confirmedVoteValue;
+      await vote.save();
 
       const newConfirmedVote = Vote.create({
-        event: waitingVotes[i].event,
-        value: avaSlots,
+        event: vote.event,
+        value: confirmedVoteValue,
         status: 1,
-        member: waitingVotes[i].member,
+        member: vote.member,
       });
 
       await newConfirmedVote.save();
 
-      createNotification(pubsub, [waitingVotes[i].member.profileId], {
+      createNotification(pubsub, [vote.member.profileId], {
         messageKey: "confirm_waiting_slot",
-        actionObject: event.title,
-        amount: avaSlots,
+        actionObject: event?.title,
+        amount: confirmedVoteValue,
       });
+
+      availableSlots = 0;
     }
-    avaSlots -= waitingVotes[i].value;
   }
 };
 

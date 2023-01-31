@@ -1,8 +1,14 @@
+import { Client } from "onesignal-node";
 import { Publisher } from "type-graphql";
 import { Notification } from "../entities/Notification";
 import { Profile } from "../entities/Profile";
 import { UserNotification } from "../entities/UserNotification";
 import { NewNotiPayload, NotiMessageKey } from "../types/Notification";
+
+const client = new Client(
+  process.env.ONESIGNAL_APPID as any,
+  process.env.ONESIGNAL_APIID as any
+);
 
 interface NotiContent {
   amount?: number;
@@ -40,5 +46,18 @@ export const createNotification = async (
       profileId,
       notification: newUserNoti,
     });
+  }
+};
+export const sendNotification = async (playerIds: string[]) => {
+  try {
+    const response = await client.createNotification({
+      contents: {
+        en: "Hello, world!",
+      },
+      include_player_ids: playerIds,
+    });
+    console.log(response.statusCode);
+  } catch (error) {
+    console.error(error);
   }
 };
