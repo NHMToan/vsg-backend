@@ -20,6 +20,7 @@ import { Admin } from "./entities/Admin";
 import { Club } from "./entities/Club";
 import { ClubEvent } from "./entities/ClubEvent";
 import { ClubMember } from "./entities/ClubMember";
+import { ClubNote } from "./entities/ClubNote";
 import { Comment } from "./entities/Comment";
 import { Conversation } from "./entities/Conversation";
 import { EventHistory } from "./entities/EventHistory";
@@ -39,6 +40,7 @@ import { AdminResolver } from "./resolvers/admin";
 import { ConversationResolver } from "./resolvers/chat";
 import { ClubResolver } from "./resolvers/club";
 import { ClubMemberResolver } from "./resolvers/clubmember";
+import { ClubNoteResolver } from "./resolvers/clubNote";
 import { CommentResolver } from "./resolvers/comment";
 import { ClubEventResolver } from "./resolvers/event";
 import { FollowingResolver } from "./resolvers/following";
@@ -102,6 +104,7 @@ const main = async () => {
       Rating,
       RatingCandidate,
       RatingVote,
+      ClubNote,
     ],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
@@ -150,6 +153,7 @@ const main = async () => {
       RatingResolver,
       RatingCandidateResolver,
       RatingVoteResolver,
+      ClubNoteResolver,
     ],
   });
   const wsServer = new WebSocketServer({

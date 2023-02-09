@@ -327,6 +327,44 @@ export class ClubEventResolver {
       return null;
     }
   }
+
+  @Query((_return) => Number, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async myEventsCount(@Ctx() { user }: Context): Promise<Number> {
+    try {
+      const clubMems = await ClubMember.find({
+        where: {
+          profileId: user.profileId,
+          status: 2,
+        },
+      });
+
+      let foundEvents: ClubEvent[] = [];
+
+      const beforeMinutes = addMinutes(5);
+      const afterMinutes = minusMinutes(60);
+
+      for (let i = 0; i < clubMems.length; i++) {
+        const clubEvents = await ClubEvent.find({
+          where: {
+            club: {
+              id: clubMems[i].clubId,
+            },
+            time: MoreThan(afterMinutes.toISOString()),
+            start: LessThan(beforeMinutes.toISOString()),
+            status: 1,
+          },
+        });
+        foundEvents.push(...clubEvents);
+      }
+
+      return foundEvents.length || 0;
+    } catch (error) {
+      console.log(error);
+      return 0;
+    }
+  }
+
   @Query((_return) => ClubEvent, { nullable: true })
   @UseMiddleware(checkAuth)
   async getEvent(
