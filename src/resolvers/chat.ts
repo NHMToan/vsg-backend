@@ -44,17 +44,18 @@ export class ConversationResolver {
     });
     return res.reverse();
   }
+
   @FieldResolver((_) => Boolean)
-  async isRead(@Root() con: Conversation) {
-    const res = await Message.find({
+  @UseMiddleware(checkAuth)
+  async isRead(@Root() con: Conversation, @Ctx() { user }: Context) {
+    const res = await Message.findOne({
       where: { conversation: con },
       order: {
         createdAt: -1,
       },
-      take: 1,
-      transaction: true,
     });
-    return res[0]?.isRead || false;
+    if (res?.senderId === user.profileId) return true;
+    return res?.isRead || false;
   }
   @Query((_return) => Conversation, { nullable: true })
   @UseMiddleware(checkAuth)
