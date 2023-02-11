@@ -14,6 +14,7 @@ import { Club } from "../entities/Club";
 import { ClubMember } from "../entities/ClubMember";
 import { ClubNote } from "../entities/ClubNote";
 import { checkAuth } from "../middleware/checkAuth";
+import { S3Service } from "../services/uploader";
 import {
   ClubNoteMutationResponse,
   ClubNotes,
@@ -28,7 +29,7 @@ export class ClubNoteResolver {
   @UseMiddleware(checkAuth)
   async createClubNote(
     @Arg("createClubNoteInput")
-    { clubId, ...args }: CreateClubNoteInput,
+    { clubId, images, ...args }: CreateClubNoteInput,
     @Ctx() { user }: Context
   ): Promise<ClubNoteMutationResponse> {
     try {
@@ -47,9 +48,26 @@ export class ClubNoteResolver {
           success: false,
           message: "Unauthenticated",
         };
+      const uploader = new S3Service();
+      let imagesArray: string[] = [];
+      if (images?.length > 0) {
+        for (let i = 0; i < images.length; i++) {
+          try {
+            const imageRes: any = await uploader.uploadFile(images[i]);
+            imagesArray.push(imageRes.Location);
+          } catch (error) {
+            return {
+              code: 400,
+              success: false,
+              message: error,
+            };
+          }
+        }
+      }
 
       const newNote = ClubNote.create({
         ...args,
+        images: imagesArray,
         club,
       });
       await newNote.save();

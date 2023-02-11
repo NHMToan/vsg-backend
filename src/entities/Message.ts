@@ -27,6 +27,7 @@ export class Message extends BaseEntity {
   sender: Profile;
 
   @RelationId((message: Message) => message.sender)
+  @Column()
   senderId: string;
 
   @Field()
@@ -37,6 +38,10 @@ export class Message extends BaseEntity {
   @Column()
   content!: string;
 
+  @Field({ defaultValue: false })
+  @Column({ default: false })
+  isRead: boolean;
+
   @Field((_) => [String], { nullable: true })
   @Column("text", { nullable: true, array: true })
   attachments!: string[];
@@ -45,5 +50,6 @@ export class Message extends BaseEntity {
   conversation: Conversation;
 
   @RelationId((rate: Message) => rate.conversation)
+  @Column()
   conversationId: string;
 }

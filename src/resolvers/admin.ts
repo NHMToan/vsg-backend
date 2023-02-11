@@ -12,8 +12,10 @@ import {
 import { FindManyOptions } from "typeorm";
 import { ADMIN_CREATE_KEY, __prod__ } from "../constants";
 import { Admin } from "../entities/Admin";
+import { Profile } from "../entities/Profile";
 import { User } from "../entities/User";
 import { checkAdminAuth } from "../middleware/checkAuth";
+import { S3Service } from "../services/uploader";
 import {
   AdminLoginInput,
   AdminMutationResponse,
@@ -21,6 +23,7 @@ import {
   Users,
 } from "../types/Admin";
 import { AdminContext } from "../types/Context";
+import { UpdateProfileInput } from "../types/Profile/UpdateProfileInput";
 import { UserMutationResponse } from "../types/User/UserMutationResponse";
 import { createAdminToken, sendAdminRefreshToken } from "../utils/adminAuth";
 @Resolver((_of) => Admin)
@@ -263,6 +266,53 @@ export class AdminResolver {
       code: 200,
       success: true,
       message: "Role is changed successfully!",
+    };
+  }
+
+  @Mutation(() => UserMutationResponse)
+  @UseMiddleware(checkAdminAuth)
+  async adminSetAvatar(
+    @Arg("profileId", (_type) => ID) profileId: string,
+    @Arg("updateProfileInput")
+    { avatarFile }: UpdateProfileInput
+  ): Promise<UserMutationResponse> {
+    if (!profileId) {
+      return {
+        code: 400,
+        success: false,
+        message: "Wrong user",
+      };
+    }
+    const user = await Profile.findOne(profileId);
+    if (!user) {
+      return {
+        code: 400,
+        success: false,
+        message: "User is no longer exists",
+      };
+    }
+    const uploader = new S3Service();
+
+    if (avatarFile) {
+      try {
+        const avatarRes: any = await uploader.uploadFile(avatarFile);
+        user.avatar = avatarRes.Location;
+      } catch (error) {
+        return {
+          code: 400,
+          success: false,
+          message: error,
+        };
+      }
+    }
+
+    await user.save();
+
+    return {
+      code: 200,
+      success: true,
+      message: "Avatar is changed successfully!",
+      profile: user,
     };
   }
 }

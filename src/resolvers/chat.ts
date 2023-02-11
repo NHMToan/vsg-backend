@@ -44,7 +44,18 @@ export class ConversationResolver {
     });
     return res.reverse();
   }
-
+  @FieldResolver((_) => Boolean)
+  async isRead(@Root() con: Conversation) {
+    const res = await Message.find({
+      where: { conversation: con },
+      order: {
+        createdAt: -1,
+      },
+      take: 1,
+      transaction: true,
+    });
+    return res[0]?.isRead || false;
+  }
   @Query((_return) => Conversation, { nullable: true })
   @UseMiddleware(checkAuth)
   async getConversation(
@@ -183,14 +194,14 @@ export class ConversationResolver {
     @Ctx() { user }: Context
   ): Promise<Conversations | null> {
     try {
-      const realLimit = limit || 50;
+      const realLimit = limit || 200;
       const realOffset = offset || 0;
 
       const conversations = await getRepository(Conversation)
         .createQueryBuilder("conversation")
         .leftJoin("conversation.members", "mem")
         .leftJoinAndSelect("conversation.members", "member")
-        .where("mem.id = :id", { id: user.profileId })
+        .where("mem.id = :id", { id: user.profileId, limit, offset })
         .orderBy("conversation.updatedAt", "DESC")
         .getMany();
 
@@ -217,7 +228,30 @@ export class ConversationResolver {
       };
     }
   }
+  @Mutation((_return) => ConversationMutationResponse)
+  @UseMiddleware(checkAuth)
+  async setConversationRead(
+    @Arg("converId", (_type) => ID) converId: string
+  ): Promise<ConversationMutationResponse> {
+    const messages = await Message.find({
+      where: { conversationId: converId },
+      order: {
+        createdAt: -1,
+      },
+      take: 5,
+      transaction: true,
+    });
+    for (let i = 0; i < messages.length; i++) {
+      messages[i].isRead = true;
+      await messages[i].save();
+    }
 
+    return {
+      code: 200,
+      success: true,
+      message: "Read",
+    };
+  }
   @Subscription((_returns) => Conversation, {
     topics: Topic.NewConversation,
     filter: ({

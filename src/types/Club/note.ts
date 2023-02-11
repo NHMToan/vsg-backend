@@ -1,8 +1,8 @@
+import { FileUpload, GraphQLUpload } from "graphql-upload";
 import { Field, InputType, ObjectType } from "type-graphql";
 import { ClubNote } from "../../entities/ClubNote";
 import { FieldError } from "../FieldError";
 import { IMutationResponse } from "../MutationResponse";
-
 @InputType()
 export class CreateClubNoteInput {
   @Field()
@@ -13,6 +13,9 @@ export class CreateClubNoteInput {
 
   @Field()
   isPublic: boolean;
+
+  @Field((_) => [GraphQLUpload])
+  images: FileUpload[];
 }
 
 @InputType()

@@ -1,4 +1,5 @@
 import { Field, ObjectType } from "type-graphql";
+import { Profile } from "../../entities/Profile";
 import { User } from "../../entities/User";
 import { IMutationResponse } from "../MutationResponse";
 
@@ -10,6 +11,9 @@ export class UserMutationResponse implements IMutationResponse {
 
   @Field({ nullable: true })
   user?: User;
+
+  @Field({ nullable: true })
+  profile?: Profile;
 
   @Field({ nullable: true })
   accessToken?: string;

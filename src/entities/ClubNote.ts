@@ -41,4 +41,8 @@ export class ClubNote extends BaseEntity {
   @Field()
   @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
+
+  @Field((_type) => [String], { nullable: true })
+  @Column("text", { array: true, default: [] })
+  images: string[];
 }
