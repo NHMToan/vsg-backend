@@ -4,6 +4,7 @@ import {
   ApolloServerPluginLandingPageGraphQLPlayground,
 } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
+import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -56,10 +57,10 @@ import { RatingVoteResolver } from "./resolvers/ratingVote";
 import { UserResolver } from "./resolvers/user";
 import { VoteResolver } from "./resolvers/vote";
 import adminRefreshTokenRouter from "./routes/adminRefreshTokenRouter";
+import chatBotRouter from "./routes/chatBotRouter";
 import refreshTokenRouter from "./routes/refreshTokenRouter";
 import { Context } from "./types/Context";
 import { buildDataLoaders } from "./utils/dataLoaders";
-
 const main = async () => {
   const connection = await createConnection({
     type: "postgres",
@@ -112,6 +113,7 @@ const main = async () => {
 
   const app = express();
 
+  app.use(bodyParser.json());
   app.use(
     cors({
       origin: [
@@ -128,6 +130,7 @@ const main = async () => {
 
   app.use("/refresh_token", refreshTokenRouter);
   app.use("/admin_refresh_token", adminRefreshTokenRouter);
+  app.use("/chatbot", chatBotRouter);
 
   const httpServer = createServer(app);
 
