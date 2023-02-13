@@ -8,14 +8,13 @@ const config = new Configuration({
 const openai = new OpenAIApi(config);
 router.post("/", async (req, res) => {
   try {
-    console.log(req.body);
     const prompt: string = await req.body.prompt;
 
     const response = await openai.createCompletion({
       model: "text-davinci-003",
       prompt: `${prompt}`,
-      temperature: 0,
-      max_tokens: 3000,
+      temperature: 0.7,
+      max_tokens: 500,
       top_p: 1,
       frequency_penalty: 0.5,
       presence_penalty: 0,
