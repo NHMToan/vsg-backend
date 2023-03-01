@@ -232,20 +232,25 @@ export class ConversationResolver {
   @Mutation((_return) => ConversationMutationResponse)
   @UseMiddleware(checkAuth)
   async setConversationRead(
-    @Arg("converId", (_type) => ID) converId: string
+    @Arg("converId", (_type) => ID) converId: string,
+    @Ctx() { user }: Context
   ): Promise<ConversationMutationResponse> {
-    const messages = await Message.find({
-      where: { conversationId: converId },
+    const message = await Message.findOne({
+      where: { conversationId: converId, senderId: user.profileId },
       order: {
         createdAt: -1,
       },
-      take: 5,
       transaction: true,
     });
-    for (let i = 0; i < messages.length; i++) {
-      messages[i].isRead = true;
-      await messages[i].save();
-    }
+    if (!message)
+      return {
+        code: 200,
+        success: true,
+        message: "Read",
+      };
+
+    message.isRead = true;
+    await message?.save();
 
     return {
       code: 200,
