@@ -40,11 +40,14 @@
     "passport-facebook": "^3.0.0",
     "pg": "^8.7.1",
     "reflect-metadata": "^0.1.13",
+    "sharp": "^0.31.3",
+    "stream": "^0.0.2",
     "type-graphql": "^1.1.1",
     "typeorm": "^0.2.41",
     "typeorm-typedi-extensions": "^0.4.1",
     "uuid": "^8.3.2",
-    "ws": "^8.7.0"
+    "ws": "^8.7.0",
+    "zlib": "^1.0.5"
   },
   "devDependencies": {
     "@types/connect-redis": "^0.0.18",
@@ -60,6 +63,7 @@
     "@types/nodemailer": "^6.4.4",
     "@types/passport": "^1.0.9",
     "@types/passport-facebook": "^2.1.11",
+    "@types/sharp": "^0.31.1",
     "@types/uuid": "^8.3.4",
     "@types/ws": "^8.5.3",
     "nodemon": "^2.0.15",

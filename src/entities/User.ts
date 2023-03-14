@@ -56,4 +56,8 @@ export class User extends BaseEntity {
   @Field(() => [Post])
   @ManyToMany((_type) => Post, (post) => post.favoritePerson)
   favoritePosts: Promise<Post[]>;
+
+  @Field()
+  @Column({ nullable: true, default: 1 })
+  status: number;
 }

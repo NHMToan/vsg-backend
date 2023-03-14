@@ -156,7 +156,8 @@ export class AdminResolver {
   async getUsers(
     @Arg("limit", (_type) => Int!, { nullable: true }) limit: number,
     @Arg("offset", (_type) => Int!, { nullable: true }) offset: number,
-    @Arg("ordering", (_type) => String!, { nullable: true }) ordering: string
+    @Arg("ordering", (_type) => String!, { nullable: true }) ordering: string,
+    @Arg("status", (_type) => Int!, { nullable: true }) status: number
   ): Promise<Users | null> {
     try {
       const totalPostCount = await User.count();
@@ -172,6 +173,9 @@ export class AdminResolver {
         take: realLimit,
         skip: realOffset,
         relations: ["profile"],
+        where: {
+          status,
+        },
       };
 
       const users = await User.find(findOptions);
@@ -266,6 +270,42 @@ export class AdminResolver {
       code: 200,
       success: true,
       message: "Role is changed successfully!",
+    };
+  }
+
+  @Mutation(() => UserMutationResponse)
+  @UseMiddleware(checkAdminAuth)
+  async adminSetStatus(
+    @Arg("userId", (_type) => ID) userId: string,
+    @Arg("status", (_type) => Int!, { nullable: true }) status: number
+  ): Promise<UserMutationResponse> {
+    if (!userId) {
+      return {
+        code: 400,
+        success: false,
+        message: "Wrong user",
+      };
+    }
+    const user = await User.findOne(userId);
+    if (!user) {
+      return {
+        code: 400,
+        success: false,
+        message: "User is no longer exists",
+      };
+    }
+
+    await User.update(
+      { id: userId },
+      {
+        status,
+      }
+    );
+
+    return {
+      code: 200,
+      success: true,
+      message: "Status is changed successfully!",
     };
   }
 

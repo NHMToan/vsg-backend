@@ -106,6 +106,10 @@ export class Profile extends BaseEntity {
   friend: number;
 
   @Field()
+  @Column({ nullable: true, default: 1 })
+  status: number;
+
+  @Field()
   @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
 

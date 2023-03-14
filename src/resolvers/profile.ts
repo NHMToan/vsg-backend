@@ -175,6 +175,7 @@ export class ProfileResolver {
     @Arg("offset", (_type) => Int!, { nullable: true }) offset: number,
     @Arg("ordering", (_type) => String!, { nullable: true }) ordering: string,
     @Arg("search", (_type) => String!, { nullable: true }) search: string,
+    @Arg("status", (_type) => Int!, { nullable: true }) status: number,
     @Ctx() { user }: Context
   ): Promise<Profiles | null> {
     try {
@@ -194,6 +195,7 @@ export class ProfileResolver {
         where: {
           id: Not(user.profileId),
           ...searchOption,
+          status,
         },
         relations: ["user"],
       };

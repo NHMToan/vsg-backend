@@ -96,7 +96,13 @@ export class UserResolver {
           message: "Incorrect password",
         };
       }
-
+      if (existingUser.status !== 1) {
+        return {
+          code: 400,
+          success: false,
+          message: `User is in-active. Please contact admin to get more information.`,
+        };
+      }
       const accessToken = createToken("accessToken", existingUser);
 
       sendRefreshToken(res, existingUser);
@@ -157,6 +163,14 @@ export class UserResolver {
           accessToken,
         };
       } else {
+        if (existingUser.status !== 1) {
+          return {
+            code: 400,
+            success: false,
+            message: `User is in-active. Please contact admin to get more information.`,
+          };
+        }
+
         const accessToken = createToken("accessToken", existingUser);
 
         sendRefreshToken(res, existingUser);
