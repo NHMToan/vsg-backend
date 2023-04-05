@@ -89,6 +89,27 @@ export class ClubEventResolver {
       return previousValue + currentValue.value;
     }, 0);
   }
+
+  @FieldResolver((_return) => Number)
+  async myConfirmedCount(@Root() root: ClubEvent, @Ctx() { user }: Context) {
+    const clubMember = await ClubMember.findOne({
+      profileId: user.profileId,
+      clubId: root.clubId,
+    });
+
+    const foundVotes = await Vote.find({
+      where: {
+        event: root,
+        status: 1,
+        member: clubMember,
+      },
+    });
+
+    return foundVotes.reduce((previousValue, currentValue) => {
+      return previousValue + currentValue.value;
+    }, 0);
+  }
+
   @FieldResolver((_return) => Boolean)
   @UseMiddleware(checkAuth)
   async isVoted(@Root() root: ClubEvent, @Ctx() { user }: Context) {
@@ -327,7 +348,52 @@ export class ClubEventResolver {
       return null;
     }
   }
+  @Query((_return) => Events, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async myConfirmedEvents(@Ctx() { user }: Context): Promise<Events | null> {
+    try {
+      const clubMems = await ClubMember.find({
+        where: {
+          profileId: user.profileId,
+          status: 2,
+        },
+      });
+      if (clubMems.length === 0) {
+        return {
+          totalCount: 0,
+          results: [],
+          hasMore: false,
+        };
+      }
+      let foundEvents: ClubEvent[] = [];
 
+      const beforeMinutes = addMinutes(5);
+      const afterMinutes = minusMinutes(60);
+
+      for (let i = 0; i < clubMems.length; i++) {
+        const clubEvents = await ClubEvent.find({
+          where: {
+            club: {
+              id: clubMems[i].clubId,
+            },
+            time: MoreThan(afterMinutes.toISOString()),
+            start: LessThan(beforeMinutes.toISOString()),
+            status: 1,
+          },
+        });
+        foundEvents.push(...clubEvents);
+      }
+
+      return {
+        totalCount: foundEvents.length,
+        results: orderBy(foundEvents, ["time"], ["asc"]),
+        hasMore: false,
+      };
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  }
   @Query((_return) => Number, { nullable: true })
   @UseMiddleware(checkAuth)
   async myEventsCount(@Ctx() { user }: Context): Promise<Number> {

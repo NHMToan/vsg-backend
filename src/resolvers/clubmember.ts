@@ -10,7 +10,7 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { FindManyOptions } from "typeorm";
+import { FindManyOptions, Like } from "typeorm";
 import { Club } from "../entities/Club";
 import { ClubMember } from "../entities/ClubMember";
 import { Profile } from "../entities/Profile";
@@ -44,7 +44,9 @@ export class ClubMemberResolver {
     @Arg("offset", (_type) => Int!, { nullable: true }) offset: number,
     @Arg("clubId", (_type) => ID!) clubId: string,
     @Arg("status", (_type) => Int!) status: number,
-    @Arg("role", (_type) => Int!, { nullable: true }) role: number
+    @Arg("role", (_type) => Int!, { nullable: true }) role: number,
+    @Arg("searchName", (_type) => String!, { nullable: true })
+    searchName: string
   ): Promise<Clubmembers | null> {
     try {
       const options: any = {
@@ -54,9 +56,14 @@ export class ClubMemberResolver {
       if (role) {
         options.role = role;
       }
+      if (searchName) {
+        options["profile.displayName"] = Like(`%${searchName}%`);
+      }
       const totalPostCount = await ClubMember.count({
         where: options,
+        relations: ["profile"],
       });
+
       const realLimit = limit || 50;
       const realOffset = offset || 0;
 
@@ -64,10 +71,11 @@ export class ClubMemberResolver {
         take: realLimit,
         skip: realOffset,
         where: options,
+        relations: ["profile"],
       };
 
       const clubmems = await ClubMember.find(findOptions);
-
+      console.log(clubmems);
       let hasMore = realLimit + realOffset < totalPostCount;
       return {
         totalCount: totalPostCount,

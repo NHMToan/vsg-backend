@@ -74,7 +74,7 @@ export class UserResolver {
     @Ctx() { res }: Context
   ): Promise<UserMutationResponse> {
     try {
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
 
       if (!existingUser) {
         return {
@@ -199,8 +199,8 @@ export class UserResolver {
     registerInput: RegisterInput,
     @Ctx() { res }: Context
   ): Promise<UserMutationResponse> {
-    const { email, password, lastName, firstName } = registerInput;
-
+    const { email: emailInput, password, lastName, firstName } = registerInput;
+    const email = emailInput.toLowerCase();
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -243,7 +243,9 @@ export class UserResolver {
 
   @Mutation(() => UserMutationResponse)
   async forgotPassword(@Arg("email") email: string, @Ctx() { res }: Context) {
-    const user = await User.findOne({ where: { email } });
+    const emailInput = email.toLowerCase();
+
+    const user = await User.findOne({ where: { email: emailInput } });
     if (!user) {
       return {
         code: 400,
@@ -260,7 +262,7 @@ export class UserResolver {
       maxAge: 1000 * 60 * 60 * 24,
     });
 
-    await sendEmail(email, emailContent(code));
+    await sendEmail(emailInput, emailContent(code));
     return {
       code: 200,
       success: true,
