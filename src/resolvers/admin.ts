@@ -311,6 +311,41 @@ export class AdminResolver {
 
   @Mutation(() => UserMutationResponse)
   @UseMiddleware(checkAdminAuth)
+  async adminSetEmail(
+    @Arg("userId", (_type) => ID) userId: string
+  ): Promise<UserMutationResponse> {
+    if (!userId) {
+      return {
+        code: 400,
+        success: false,
+        message: "Wrong user",
+      };
+    }
+    const user = await User.findOne(userId);
+    if (!user) {
+      return {
+        code: 400,
+        success: false,
+        message: "User is no longer exists",
+      };
+    }
+
+    await User.update(
+      { id: userId },
+      {
+        email: user.email.toLowerCase(),
+      }
+    );
+
+    return {
+      code: 200,
+      success: true,
+      message: "Status is changed successfully!",
+    };
+  }
+
+  @Mutation(() => UserMutationResponse)
+  @UseMiddleware(checkAdminAuth)
   async adminSetAvatar(
     @Arg("profileId", (_type) => ID) profileId: string,
     @Arg("updateProfileInput")

@@ -10,6 +10,7 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
+import { FindConditions } from "typeorm";
 import { FORGET_PASSWORD_PREFIX, __prod__ } from "../constants";
 import { Profile } from "../entities/Profile";
 import { User } from "../entities/User";
@@ -74,7 +75,10 @@ export class UserResolver {
     @Ctx() { res }: Context
   ): Promise<UserMutationResponse> {
     try {
-      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      const existingUser = await User.findOne({
+        email: email.toLowerCase(),
+        status: 1,
+      } as FindConditions<User>);
 
       if (!existingUser) {
         return {
@@ -96,13 +100,7 @@ export class UserResolver {
           message: "Incorrect password",
         };
       }
-      if (existingUser.status !== 1) {
-        return {
-          code: 400,
-          success: false,
-          message: `User is in-active. Please contact admin to get more information.`,
-        };
-      }
+
       const accessToken = createToken("accessToken", existingUser);
 
       sendRefreshToken(res, existingUser);
@@ -201,6 +199,7 @@ export class UserResolver {
   ): Promise<UserMutationResponse> {
     const { email: emailInput, password, lastName, firstName } = registerInput;
     const email = emailInput.toLowerCase();
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
