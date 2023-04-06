@@ -312,7 +312,8 @@ export class AdminResolver {
   @Mutation(() => UserMutationResponse)
   @UseMiddleware(checkAdminAuth)
   async adminSetEmail(
-    @Arg("userId", (_type) => ID) userId: string
+    @Arg("userId", (_type) => ID) userId: string,
+    @Arg("email", (_type) => String!) email: string
   ): Promise<UserMutationResponse> {
     if (!userId) {
       return {
@@ -333,7 +334,7 @@ export class AdminResolver {
     await User.update(
       { id: userId },
       {
-        email: user.email.toLowerCase(),
+        email,
       }
     );
 
