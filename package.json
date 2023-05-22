@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@types/express-session": "^1.17.4",
+    "apn": "^2.2.0",
     "apollo-server-core": "^3.6.2",
     "apollo-server-express": "^3.6.2",
     "argon2": "^0.28.3",

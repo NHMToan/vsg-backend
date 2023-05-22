@@ -32,8 +32,10 @@ export class ClubMemberResolver {
 
   @FieldResolver((_return) => Boolean)
   @UseMiddleware(checkAuth)
-  async isAdmin(@Root() root: ClubMember, @Ctx() { user }: Context) {
-    if (root.profileId === user.profileId) return true;
+  async isAdmin(@Root() root: ClubMember) {
+    const existingClub = await Club.findOne(root.clubId);
+
+    if (existingClub?.adminId === root.profileId) return true;
     return false;
   }
 
@@ -46,7 +48,8 @@ export class ClubMemberResolver {
     @Arg("status", (_type) => Int!) status: number,
     @Arg("role", (_type) => Int!, { nullable: true }) role: number,
     @Arg("searchName", (_type) => String!, { nullable: true })
-    searchName: string
+    searchName: string,
+    @Arg("ordering", (_type) => String!, { nullable: true }) ordering: string
   ): Promise<Clubmembers | null> {
     try {
       const options: any = {
@@ -64,6 +67,8 @@ export class ClubMemberResolver {
         relations: ["profile"],
       });
 
+      const orderingField = ordering?.replace(/-/g, "") || "createdAt";
+
       const realLimit = limit || 50;
       const realOffset = offset || 0;
 
@@ -72,10 +77,13 @@ export class ClubMemberResolver {
         skip: realOffset,
         where: options,
         relations: ["profile"],
+        order: {
+          [orderingField]: ordering?.startsWith("-") ? "DESC" : "ASC",
+        },
       };
 
       const clubmems = await ClubMember.find(findOptions);
-      console.log(clubmems);
+
       let hasMore = realLimit + realOffset < totalPostCount;
       return {
         totalCount: totalPostCount,

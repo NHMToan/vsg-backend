@@ -157,6 +157,80 @@ export class VoteResolver {
   }
 
   @Query((_return) => Votes, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async getMemberVotes(
+    @Arg("limit", (_type) => Int!, { nullable: true }) limit: number,
+    @Arg("offset", (_type) => Int!, { nullable: true }) offset: number,
+    @Arg("memberId", (_type) => String!) memberId: string
+  ): Promise<Votes | null> {
+    try {
+      const realLimit = limit || 50;
+      const realOffset = offset || 0;
+
+      const findOptions: FindManyOptions<Vote> = {
+        order: {
+          createdAt: "DESC",
+        },
+        relations: ["member"],
+        take: realLimit,
+        skip: realOffset,
+        where: {
+          memberId,
+          status: 1,
+        },
+      };
+
+      const votes = await Vote.find(findOptions);
+
+      return {
+        totalCount: votes.length,
+        hasMore: false,
+        results: votes,
+      };
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  }
+
+  @Query((_return) => Votes, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async getMyHistoryVotes(
+    @Arg("limit", (_type) => Int!, { nullable: true }) limit: number,
+    @Arg("offset", (_type) => Int!, { nullable: true }) offset: number,
+    @Ctx() { user }: Context
+  ): Promise<Votes | null> {
+    try {
+      const realLimit = limit || 50;
+      const realOffset = offset || 0;
+
+      const findOptions: FindManyOptions<Vote> = {
+        order: {
+          createdAt: "DESC",
+        },
+        relations: ["member"],
+        take: realLimit,
+        skip: realOffset,
+        where: {
+          member: { profileId: user.profileId },
+          status: 1,
+        },
+      };
+
+      const votes = await Vote.find(findOptions);
+
+      return {
+        totalCount: votes.length,
+        hasMore: false,
+        results: votes,
+      };
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  }
+
+  @Query((_return) => Votes, { nullable: true })
   async getVotes(
     @Arg("limit", (_type) => Int!, { nullable: true }) limit: number,
     @Arg("offset", (_type) => Int!, { nullable: true }) offset: number,

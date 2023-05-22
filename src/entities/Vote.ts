@@ -28,6 +28,7 @@ export class Vote extends BaseEntity {
   @ManyToOne((_type) => ClubMember)
   member: ClubMember;
 
+  @Column()
   @RelationId((vote: Vote) => vote.member)
   memberId: string;
 
@@ -55,6 +56,7 @@ export class Vote extends BaseEntity {
   @Column({ nullable: true })
   note!: string;
 
+  @Column()
   @RelationId((vote: Vote) => vote.event)
   eventId: string;
 }
