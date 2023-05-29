@@ -40,8 +40,8 @@ import { Vote } from "./entities/Vote";
 import { AdminResolver } from "./resolvers/admin";
 import { ConversationResolver } from "./resolvers/chat";
 import { ClubResolver } from "./resolvers/club";
-import { ClubMemberResolver } from "./resolvers/clubmember";
 import { ClubNoteResolver } from "./resolvers/clubNote";
+import { ClubMemberResolver } from "./resolvers/clubmember";
 import { CommentResolver } from "./resolvers/comment";
 import { ClubEventResolver } from "./resolvers/event";
 import { FollowingResolver } from "./resolvers/following";
@@ -59,6 +59,7 @@ import { VoteResolver } from "./resolvers/vote";
 import adminRefreshTokenRouter from "./routes/adminRefreshTokenRouter";
 import chatBotRouter from "./routes/chatBotRouter";
 import refreshTokenRouter from "./routes/refreshTokenRouter";
+import verifyCaptcha from "./routes/verifyCaptcha";
 import { Context } from "./types/Context";
 import { buildDataLoaders } from "./utils/dataLoaders";
 const main = async () => {
@@ -131,6 +132,7 @@ const main = async () => {
   app.use("/refresh_token", refreshTokenRouter);
   app.use("/admin_refresh_token", adminRefreshTokenRouter);
   app.use("/chatbot", chatBotRouter);
+  app.use("/verify-recaptcha", verifyCaptcha);
 
   const httpServer = createServer(app);
 
