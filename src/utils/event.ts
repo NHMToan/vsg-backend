@@ -1,4 +1,5 @@
 import { Publisher } from "type-graphql";
+import { EventHistory } from "../entities/EventHistory";
 import { Vote } from "../entities/Vote";
 import { NewVotePayload } from "../types/Club";
 import { createNotification } from "./notification";
@@ -125,4 +126,28 @@ export const sendEventCountPubsub = async (
       status: 2,
     });
   }
+};
+
+export const createEventActivity = ({
+  eventId,
+  memberId,
+  objectId,
+  type,
+  value,
+}: {
+  eventId: string;
+  memberId: string;
+  objectId: string;
+  type: string;
+  value?: number;
+}) => {
+  const newConfirmedVote = EventHistory.create({
+    eventId,
+    memberId,
+    objectId,
+    type,
+    value,
+  });
+
+  newConfirmedVote.save();
 };

@@ -44,6 +44,7 @@ import { ClubNoteResolver } from "./resolvers/clubNote";
 import { ClubMemberResolver } from "./resolvers/clubmember";
 import { CommentResolver } from "./resolvers/comment";
 import { ClubEventResolver } from "./resolvers/event";
+import { EventHistoryResolver } from "./resolvers/eventHistory";
 import { FollowingResolver } from "./resolvers/following";
 import { FriendResolver } from "./resolvers/friend";
 import { GreetingResolver } from "./resolvers/greeting";
@@ -159,6 +160,7 @@ const main = async () => {
       RatingCandidateResolver,
       RatingVoteResolver,
       ClubNoteResolver,
+      EventHistoryResolver,
     ],
   });
   const wsServer = new WebSocketServer({

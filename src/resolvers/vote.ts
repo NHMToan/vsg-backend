@@ -34,6 +34,7 @@ import {
 import { Context } from "../types/Context";
 import { NewNotiPayload } from "../types/Notification";
 import {
+  createEventActivity,
   reduceSlots,
   sendEventCountPubsub,
   updateConfirmedVote,
@@ -437,7 +438,8 @@ export class VoteResolver {
     @Arg("voteId", (_type) => ID)
     voteId: string,
     @Arg("payStatus", (_type) => String)
-    payStatus: string
+    payStatus: string,
+    @Ctx() { user }: Context
   ): Promise<EventVoteMutationResponse> {
     try {
       const foundVote = await Vote.findOne({
@@ -454,6 +456,24 @@ export class VoteResolver {
       foundVote.paid = payStatus;
 
       await foundVote.save();
+
+      const type = !payStatus ? "remove_tag" : payStatus;
+
+      const clubMem = await ClubMember.findOne({
+        where: {
+          profileId: user.profileId,
+          clubId: foundVote.event.clubId,
+        },
+      });
+
+      if (clubMem)
+        createEventActivity({
+          type,
+          eventId: foundVote.eventId,
+          objectId: foundVote.id,
+          memberId: clubMem.id,
+        });
+
       return {
         code: 200,
         success: true,
@@ -474,7 +494,8 @@ export class VoteResolver {
     @Arg("voteId", (_type) => ID)
     voteId: string,
     @Arg("note", (_type) => String)
-    note: string
+    note: string,
+    @Ctx() { user }: Context
   ): Promise<EventVoteMutationResponse> {
     try {
       const foundVote = await Vote.findOne({
@@ -491,6 +512,23 @@ export class VoteResolver {
       foundVote.note = note;
 
       await foundVote.save();
+
+      const type = "add_note";
+
+      const clubMem = await ClubMember.findOne({
+        where: {
+          profileId: user.profileId,
+          clubId: foundVote.event.clubId,
+        },
+      });
+      if (clubMem)
+        createEventActivity({
+          type,
+          eventId: foundVote.eventId,
+          objectId: foundVote.id,
+          memberId: clubMem.id,
+        });
+
       return {
         code: 200,
         success: true,

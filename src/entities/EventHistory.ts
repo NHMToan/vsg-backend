@@ -10,6 +10,7 @@ import {
 } from "typeorm";
 import { ClubEvent } from "./ClubEvent";
 import { ClubMember } from "./ClubMember";
+import { Vote } from "./Vote";
 
 @ObjectType()
 @Entity()
@@ -31,19 +32,23 @@ export class EventHistory extends BaseEntity {
   member: ClubMember;
 
   @RelationId((vote: EventHistory) => vote.member)
+  @Column()
   memberId: string;
 
-  @Field((_type) => ClubMember, { nullable: true })
-  @ManyToOne((_type) => ClubMember)
-  object: ClubMember;
+  @Field((_type) => Vote)
+  @ManyToOne((_type) => Vote)
+  object: Vote;
 
-  @RelationId((vote: EventHistory) => vote.member)
+  @RelationId((item: EventHistory) => item.object)
+  @Column()
   objectId: string;
 
+  @Field((_type) => ClubEvent)
   @ManyToOne((_type) => ClubEvent)
   event: ClubEvent;
 
   @RelationId((vote: EventHistory) => vote.event)
+  @Column()
   eventId: string;
 
   @Field()
