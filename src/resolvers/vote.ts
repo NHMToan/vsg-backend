@@ -34,6 +34,7 @@ import {
 import { Context } from "../types/Context";
 import { NewNotiPayload } from "../types/Notification";
 import {
+  createDeleteEventVote,
   createEventActivity,
   reduceSlots,
   sendEventCountPubsub,
@@ -287,7 +288,7 @@ export class VoteResolver {
   @UseMiddleware(checkAuth)
   async voteEvent(
     @Arg("createVoteInput")
-    { eventId, status, value }: CreateVoteInput,
+    { eventId, status, value, type }: CreateVoteInput,
     @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
     @Ctx() { user }: Context
   ): Promise<EventMutationResponse> {
@@ -372,6 +373,7 @@ export class VoteResolver {
           status,
           event: foundEvent,
           member: clubMem,
+          type,
         });
 
         await newVote.save();
@@ -444,7 +446,7 @@ export class VoteResolver {
     try {
       const foundVote = await Vote.findOne({
         where: { id: voteId },
-        relations: ["event"],
+        relations: ["event", "member", "member.profile"],
       });
       if (!foundVote)
         return {
@@ -470,7 +472,7 @@ export class VoteResolver {
         createEventActivity({
           type,
           eventId: foundVote.eventId,
-          objectId: foundVote.id,
+          object: foundVote,
           memberId: clubMem.id,
         });
 
@@ -500,7 +502,7 @@ export class VoteResolver {
     try {
       const foundVote = await Vote.findOne({
         where: { id: voteId },
-        relations: ["event"],
+        relations: ["event", "member", "member.profile"],
       });
       if (!foundVote)
         return {
@@ -525,7 +527,7 @@ export class VoteResolver {
         createEventActivity({
           type,
           eventId: foundVote.eventId,
-          objectId: foundVote.id,
+          object: foundVote,
           memberId: clubMem.id,
         });
 
@@ -552,6 +554,9 @@ export class VoteResolver {
     eventId: string,
     @Arg("eventSlot", (_type) => Int)
     eventSlot: number,
+    @Arg("isSelf", (_type) => Boolean, { nullable: true })
+    isSelf: boolean,
+    @Ctx() { user }: Context,
     @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
     @PubSub(Topic.NewNotification) newNoti: Publisher<NewNotiPayload>
   ): Promise<EventMutationResponse> {
@@ -564,6 +569,16 @@ export class VoteResolver {
           success: false,
           message: "Event not found",
         };
+      if (isSelf) {
+        const now = new Date();
+        if (now > new Date(foundEvent.end)) {
+          return {
+            code: 401,
+            success: false,
+            message: "Event voting is closed.",
+          };
+        }
+      }
 
       const foundVote = await Vote.findOne({
         where: { id: voteId },
@@ -579,6 +594,41 @@ export class VoteResolver {
 
       if (foundVote.status === 1) {
         await Vote.delete(voteId);
+
+        if (isSelf) {
+          const admins = await ClubMember.find({
+            where: {
+              clubId: foundEvent.clubId,
+              role: 2,
+            },
+          });
+
+          const clubMem = await ClubMember.findOne({
+            where: {
+              profileId: user.profileId,
+              clubId: foundEvent.clubId,
+            },
+            relations: ["profile"],
+          });
+          if (clubMem) {
+            await createNotification(
+              newNoti,
+              admins.map((ad) => ad.profileId),
+              {
+                messageKey: "remove_confirm_vote",
+                actorAvatar: clubMem.profile.avatar,
+                actionObject: foundEvent.title,
+                actorName: clubMem.profile.displayName,
+                amount: foundVote.value,
+              }
+            );
+            createDeleteEventVote({
+              eventId: eventId,
+              memberId: clubMem.id,
+              value: foundVote.value,
+            });
+          }
+        }
 
         const foundWaitingVotes = await Vote.find({
           order: {
@@ -630,7 +680,7 @@ export class VoteResolver {
             message: "Vote deleted.",
           };
         }
-
+        
         await updateConfirmedVote(
           currentAvailableSlots,
           foundWaitingVotes,
@@ -675,6 +725,7 @@ export class VoteResolver {
     eventSlot: number,
     @Arg("newValue", (_type) => Int)
     newValue: number,
+    @Ctx() { user }: Context,
     @PubSub(Topic.EventChanged) notifyAboutNewVote: Publisher<NewVotePayload>,
     @PubSub(Topic.NewNotification) newNoti: Publisher<NewNotiPayload>
   ): Promise<EventMutationResponse> {
@@ -708,6 +759,20 @@ export class VoteResolver {
       }
 
       if (foundVote.status === 1) {
+        const clubMem = await ClubMember.findOne({
+          where: {
+            profileId: user.profileId,
+            clubId: foundEvent.clubId,
+          },
+          relations: ["profile"],
+        });
+        if (clubMem)
+          createDeleteEventVote({
+            eventId: eventId,
+            memberId: clubMem.id,
+            value: foundVote.value - newValue,
+          });
+
         foundVote.value = newValue;
         await foundVote.save();
 

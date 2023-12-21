@@ -1,9 +1,11 @@
 import {
   Arg,
+  FieldResolver,
   ID,
   Mutation,
   Query,
   Resolver,
+  Root,
   UseMiddleware,
 } from "type-graphql";
 import { Rating } from "../entities/Rating";
@@ -19,6 +21,18 @@ import {
 
 @Resolver(RatingCandidate)
 export class RatingCandidateResolver {
+  @FieldResolver((_return) => Number, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async votedCount(@Root() root: RatingCandidate) {
+    const foundVote = await RatingVote.find({
+      where: {
+        votedForId: root.id,
+      },
+    });
+
+    return foundVote?.length || 0;
+  }
+
   @Query((_return) => Candidates, { nullable: true })
   @UseMiddleware(checkAuth)
   async getCandidates(
@@ -47,7 +61,7 @@ export class RatingCandidateResolver {
   async createCandidate(
     @Arg("ratingId", (_type) => ID!) ratingId: string,
     @Arg("createCandidateInput")
-    { photo1, name, bio }: CreateRatingCandidateInput
+    { photo1, name, bio, video }: CreateRatingCandidateInput
   ): Promise<RatingMutationResponse> {
     try {
       const foundRating = await Rating.findOne(ratingId);
@@ -78,6 +92,7 @@ export class RatingCandidateResolver {
         name,
         bio,
         photo1: photo,
+        video: video,
         rating: foundRating,
       });
 
@@ -103,7 +118,7 @@ export class RatingCandidateResolver {
   async updateCandidate(
     @Arg("id") id: string,
     @Arg("updateCandidateInput")
-    { name, bio, photo1 }: CreateRatingCandidateInput
+    { name, bio, photo1, video }: CreateRatingCandidateInput
   ): Promise<RatingMutationResponse> {
     const existingCandidate = await RatingCandidate.findOne(id);
     if (!existingCandidate)
@@ -131,6 +146,7 @@ export class RatingCandidateResolver {
 
     existingCandidate.name = name;
     existingCandidate.bio = bio;
+    existingCandidate.video = video;
     existingCandidate.photo1 = cover;
 
     await existingCandidate.save();

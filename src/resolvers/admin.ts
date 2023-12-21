@@ -12,6 +12,7 @@ import {
 import { FindManyOptions } from "typeorm";
 import { ADMIN_CREATE_KEY, __prod__ } from "../constants";
 import { Admin } from "../entities/Admin";
+import { ClubMember } from "../entities/ClubMember";
 import { Profile } from "../entities/Profile";
 import { User } from "../entities/User";
 import { checkAdminAuth } from "../middleware/checkAuth";
@@ -26,6 +27,7 @@ import { AdminContext } from "../types/Context";
 import { UpdateProfileInput } from "../types/Profile/UpdateProfileInput";
 import { UserMutationResponse } from "../types/User/UserMutationResponse";
 import { createAdminToken, sendAdminRefreshToken } from "../utils/adminAuth";
+
 @Resolver((_of) => Admin)
 export class AdminResolver {
   @Mutation((_return) => AdminMutationResponse)
@@ -390,5 +392,25 @@ export class AdminResolver {
       message: "Avatar is changed successfully!",
       profile: user,
     };
+  }
+
+  @Mutation((_return) => UserMutationResponse)
+  @UseMiddleware(checkAdminAuth)
+  async deleteUser(
+    @Arg("id", (_type) => ID) id: string
+  ): Promise<UserMutationResponse> {
+    const existingUser = await User.findOne(id);
+    if (!existingUser)
+      return {
+        code: 400,
+        success: false,
+        message: "User not found",
+      };
+
+    await ClubMember.delete({ profileId: existingUser.profileId });
+    await Profile.delete({ id: existingUser.profileId });
+    await User.delete({ id });
+
+    return { code: 200, success: true, message: "User deleted successfully" };
   }
 }

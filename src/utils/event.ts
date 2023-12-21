@@ -131,21 +131,50 @@ export const sendEventCountPubsub = async (
 export const createEventActivity = ({
   eventId,
   memberId,
-  objectId,
+  object,
   type,
   value,
 }: {
   eventId: string;
   memberId: string;
-  objectId: string;
+  object: any;
   type: string;
   value?: number;
 }) => {
+  const objectString = JSON.stringify({
+    value: object.value,
+    user: object.member.profile.displayName,
+    createdAt: object.createdAt,
+  });
+
   const newConfirmedVote = EventHistory.create({
     eventId,
     memberId,
-    objectId,
+    objectString,
     type,
+    value,
+  });
+
+  newConfirmedVote.save();
+};
+export const createDeleteEventVote = ({
+  eventId,
+  memberId,
+  value,
+}: {
+  eventId: string;
+  memberId: string;
+  value: number;
+}) => {
+  const objectString = JSON.stringify({
+    value: value,
+  });
+
+  const newConfirmedVote = EventHistory.create({
+    eventId,
+    memberId,
+    objectString,
+    type: "delete_vote",
     value,
   });
 

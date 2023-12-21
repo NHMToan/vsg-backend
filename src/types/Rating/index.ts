@@ -21,17 +21,20 @@ export class CreateRatingInput {
   @Field()
   name: string;
 
-  @Field()
+  @Field({ nullable: true })
   description: string;
 
-  @Field()
+  @Field({ nullable: true })
   start: string;
 
-  @Field()
+  @Field({ nullable: true })
   end: string;
 
   @Field({ nullable: true })
   status?: number;
+
+  @Field({ nullable: true })
+  hidden?: boolean;
 }
 
 @InputType()
@@ -84,6 +87,9 @@ export class CreateRatingCandidateInput {
 
   @Field()
   bio: string;
+
+  @Field({ nullable: true })
+  video: string;
 }
 
 @ObjectType()

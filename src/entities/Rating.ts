@@ -31,12 +31,12 @@ export class Rating extends BaseEntity {
   })
   candidates: RatingCandidate[];
 
-  @Field()
-  @Column()
+  @Field({ nullable: true })
+  @Column({ nullable: true })
   start: string;
 
-  @Field()
-  @Column()
+  @Field({ nullable: true })
+  @Column({ nullable: true })
   end: string;
 
   @Field()
@@ -46,6 +46,10 @@ export class Rating extends BaseEntity {
   @Field()
   @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
+
+  @Field()
+  @Column({ default: true })
+  hidden: boolean;
 
   @Field()
   @Column()

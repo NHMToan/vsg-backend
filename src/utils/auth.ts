@@ -13,7 +13,7 @@ export const createToken = (type: "accessToken" | "refreshToken", user: User) =>
       ? (process.env.ACCESS_TOKEN_SECRET as Secret)
       : (process.env.REFRESH_TOKEN_SECRET as Secret),
     {
-      expiresIn: type === "accessToken" ? "30d" : "60d",
+      expiresIn: type === "accessToken" ? "180d" : "365d",
     }
   );
 

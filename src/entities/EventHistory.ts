@@ -35,13 +35,17 @@ export class EventHistory extends BaseEntity {
   @Column()
   memberId: string;
 
-  @Field((_type) => Vote)
-  @ManyToOne((_type) => Vote)
+  @Field((_type) => Vote, { nullable: true })
+  @ManyToOne((_type) => Vote, { nullable: true })
   object: Vote;
 
   @RelationId((item: EventHistory) => item.object)
-  @Column()
+  @Column({ nullable: true })
   objectId: string;
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
+  objectString: string;
 
   @Field((_type) => ClubEvent)
   @ManyToOne((_type) => ClubEvent)

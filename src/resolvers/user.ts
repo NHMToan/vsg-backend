@@ -12,6 +12,7 @@ import {
 } from "type-graphql";
 import { FindConditions } from "typeorm";
 import { FORGET_PASSWORD_PREFIX, __prod__ } from "../constants";
+import { ClubMember } from "../entities/ClubMember";
 import { Profile } from "../entities/Profile";
 import { User } from "../entities/User";
 import { checkAuth } from "../middleware/checkAuth";
@@ -38,6 +39,13 @@ export class UserResolver {
     const foundProfile = await Profile.findOne(root?.profileId);
 
     return foundProfile?.displayName || `${root.lastName}`;
+  }
+
+  @FieldResolver((_return) => Boolean)
+  async hasClub(@Root() root: User) {
+    const foundClub = await ClubMember.findOne({ profileId: root.profileId });
+    if (foundClub) return true;
+    return false;
   }
 
   @FieldResolver((_return) => Profile)
@@ -326,7 +334,8 @@ export class UserResolver {
   @Mutation((_return) => UserMutationResponse)
   @UseMiddleware(checkAuth)
   async updateUser(
-    @Arg("updateUserInput") { firstName, lastName }: UpdateUserInput,
+    @Arg("updateUserInput")
+    { firstName, lastName, password, email }: UpdateUserInput,
     @Ctx() { user }: Context
   ): Promise<UserMutationResponse> {
     const existingUser = await User.findOne(user.userId);
@@ -337,9 +346,31 @@ export class UserResolver {
         success: false,
         message: "User not found",
       };
+    if (password) {
+      const hashedPassword = await argon2.hash(password);
+      existingUser.password = hashedPassword;
+    }
 
-    existingUser.firstName = firstName;
-    existingUser.lastName = lastName;
+    if (email) {
+      const existingEmail = await User.findOne({ email: email });
+      if (existingEmail) {
+        return {
+          code: 400,
+          success: false,
+          message: "Email is already existing, try with another email!",
+        };
+      } else {
+        existingUser.email = email;
+      }
+    }
+
+    if (lastName) {
+      existingUser.lastName = lastName;
+    }
+
+    if (firstName) {
+      existingUser.firstName = firstName;
+    }
 
     await existingUser.save();
 

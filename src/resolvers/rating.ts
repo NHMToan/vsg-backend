@@ -10,7 +10,7 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { FindManyOptions, LessThan, MoreThan } from "typeorm";
+import { FindManyOptions } from "typeorm";
 import { Rating } from "../entities/Rating";
 import { RatingCandidate } from "../entities/RatingCandidate";
 import { RatingVote } from "../entities/RatingVote";
@@ -22,21 +22,6 @@ import {
   RatingMutationResponse,
   Ratings,
 } from "../types/Rating";
-
-function addMinutes(numOfMinutes: number, date = new Date()) {
-  const dateCopy = new Date(date.getTime());
-
-  dateCopy.setMinutes(dateCopy.getMinutes() + numOfMinutes);
-
-  return dateCopy;
-}
-function minusMinutes(numOfMinutes: number, date = new Date()) {
-  const dateCopy = new Date(date.getTime());
-
-  dateCopy.setMinutes(dateCopy.getMinutes() - numOfMinutes);
-
-  return dateCopy;
-}
 
 @Resolver(Rating)
 export class RatingResolver {
@@ -66,13 +51,8 @@ export class RatingResolver {
   @UseMiddleware(checkAuth)
   async myRatings(): Promise<Ratings | null> {
     try {
-      const beforeMinutes = addMinutes(5);
-      const afterMinutes = minusMinutes(60);
-
       const foundRatings = await Rating.find({
         where: {
-          end: MoreThan(afterMinutes.toISOString()),
-          start: LessThan(beforeMinutes.toISOString()),
           status: 1,
         },
       });
@@ -157,7 +137,6 @@ export class RatingResolver {
         };
 
       const newRating = Rating.create({
-        status: 1,
         ...args,
       });
       await newRating.save();
@@ -196,6 +175,68 @@ export class RatingResolver {
       foundRating.description = description;
       foundRating.start = start;
       foundRating.end = end;
+      await foundRating.save();
+      return {
+        code: 200,
+        success: true,
+        message: "Rating updated successfully",
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
+    }
+  }
+
+  @Mutation((_return) => RatingMutationResponse)
+  @UseMiddleware(checkAuth)
+  async changeHiddenRating(
+    @Arg("id", (_type) => ID) id: string,
+    @Arg("hidden", (_type) => Boolean) hidden: boolean
+  ): Promise<RatingMutationResponse> {
+    try {
+      const foundRating = await Rating.findOne(id);
+      if (!foundRating)
+        return {
+          code: 400,
+          success: false,
+          message: "Rating not found",
+        };
+      foundRating.hidden = hidden;
+      await foundRating.save();
+      return {
+        code: 200,
+        success: true,
+        message: "Rating updated successfully",
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
+    }
+  }
+
+  @Mutation((_return) => RatingMutationResponse)
+  @UseMiddleware(checkAuth)
+  async changeStatusRating(
+    @Arg("id", (_type) => ID) id: string,
+    @Arg("status", (_type) => Int) status: number
+  ): Promise<RatingMutationResponse> {
+    try {
+      const foundRating = await Rating.findOne(id);
+      if (!foundRating)
+        return {
+          code: 400,
+          success: false,
+          message: "Rating not found",
+        };
+      foundRating.status = status;
       await foundRating.save();
       return {
         code: 200,

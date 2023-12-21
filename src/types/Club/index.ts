@@ -143,6 +143,9 @@ export class CreateEventInput {
   address: string;
 
   @Field({ nullable: true })
+  type: string;
+
+  @Field({ nullable: true })
   addressLink: string;
 
   @Field()
@@ -156,6 +159,9 @@ export class CreateEventInput {
 
   @Field({ nullable: true })
   price: number;
+
+  @Field((_type) => [String], { nullable: true })
+  groups: string[];
 }
 
 @InputType()
@@ -204,6 +210,9 @@ export class CreateVoteInput {
 
   @Field()
   status: number;
+
+  @Field({ nullable: true })
+  type: string;
 }
 @ObjectType()
 export class Events {

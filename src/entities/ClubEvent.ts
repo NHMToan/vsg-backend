@@ -51,6 +51,14 @@ export class ClubEvent extends BaseEntity {
 
   @Field({ nullable: true })
   @Column({ nullable: true })
+  type: string;
+
+  @Field((_type) => [String], { nullable: true })
+  @Column("text", { array: true, default: [] })
+  groups: string[];
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
   addressLink: string;
 
   @Field({ nullable: true })
@@ -75,9 +83,9 @@ export class ClubEvent extends BaseEntity {
 
   @Field((_type) => Club)
   @ManyToOne((_type) => Club)
-  club: ClubEvent;
+  club: Club;
 
-  @RelationId((vote: ClubEvent) => vote.club)
+  @RelationId((event: ClubEvent) => event.club)
   clubId: string;
 
   @Field((_type) => ClubMember)

@@ -50,6 +50,10 @@ export class RatingCandidate extends BaseEntity {
 
   @Field({ nullable: true })
   @Column({ nullable: true })
+  video!: string;
+
+  @Field({ nullable: true })
+  @Column({ nullable: true })
   photo2!: string;
 
   @Field({ nullable: true })
