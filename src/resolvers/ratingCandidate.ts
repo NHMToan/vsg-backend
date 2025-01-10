@@ -27,6 +27,7 @@ export class RatingCandidateResolver {
     const foundVote = await RatingVote.find({
       where: {
         votedForId: root.id,
+        status: 1,
       },
     });
 

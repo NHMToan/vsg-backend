@@ -2,6 +2,7 @@ import {
   Arg,
   Ctx,
   ID,
+  Int,
   Mutation,
   Query,
   Resolver,
@@ -32,7 +33,12 @@ export class RatingVoteResolver {
           success: false,
           message: "Rating not found",
         };
-
+      if (foundRating.hidden || foundRating.status !== 1)
+        return {
+          code: 400,
+          success: false,
+          message: "Rating is closed",
+        };
       const foundCandidate = await RatingCandidate.findOne(candidateId);
       if (!foundCandidate)
         return {
@@ -91,6 +97,9 @@ export class RatingVoteResolver {
         where: {
           votedForId: candidateId,
         },
+        order: {
+          createdAt: "DESC",
+        },
         relations: ["voter"],
       });
 
@@ -102,6 +111,37 @@ export class RatingVoteResolver {
     } catch (error) {
       console.log(error);
       return null;
+    }
+  }
+
+  @Mutation((_return) => RatingMutationResponse)
+  @UseMiddleware(checkAuth)
+  async changeStatusRatingVote(
+    @Arg("id", (_type) => ID) id: string,
+    @Arg("status", (_type) => Int) status: number
+  ): Promise<RatingMutationResponse> {
+    try {
+      const foundRatingVote = await RatingVote.findOne(id);
+      if (!foundRatingVote)
+        return {
+          code: 400,
+          success: false,
+          message: "Rating vote not found",
+        };
+      foundRatingVote.status = status;
+      await foundRatingVote.save();
+      return {
+        code: 200,
+        success: true,
+        message: "Rating vote updated successfully",
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        code: 500,
+        success: false,
+        message: `Internal server error ${error.message}`,
+      };
     }
   }
 }

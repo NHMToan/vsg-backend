@@ -47,4 +47,8 @@ export class RatingVote extends BaseEntity {
   @Column()
   @RelationId((vote: RatingVote) => vote.rating)
   ratingId: string;
+
+  @Field()
+  @Column({ default: 1 /*1: valid, 2: invalid*/ })
+  status: number;
 }

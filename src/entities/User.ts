@@ -8,6 +8,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
+import { Game } from "./Game";
 import { Post } from "./Post";
 import { Profile } from "./Profile";
 @ObjectType()
@@ -56,6 +57,10 @@ export class User extends BaseEntity {
   @Field(() => [Post])
   @ManyToMany((_type) => Post, (post) => post.favoritePerson)
   favoritePosts: Promise<Post[]>;
+
+  @ManyToMany(() => Game, (game) => game.sharing)
+  @Field(() => [Game])
+  sharedGames: Game[];
 
   @Field()
   @Column({ nullable: true, default: 1 })

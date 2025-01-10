@@ -27,13 +27,17 @@ import { Conversation } from "./entities/Conversation";
 import { EventHistory } from "./entities/EventHistory";
 import { Following } from "./entities/Following";
 import { Friendship } from "./entities/Friendship";
+import { Game } from "./entities/Game";
 import { Message } from "./entities/Message";
 import { Notification } from "./entities/Notification";
+import { Player } from "./entities/Player";
 import { Post } from "./entities/Post";
 import { Profile } from "./entities/Profile";
 import { Rating } from "./entities/Rating";
 import { RatingCandidate } from "./entities/RatingCandidate";
 import { RatingVote } from "./entities/RatingVote";
+import { Round } from "./entities/Round";
+import { Score } from "./entities/Score";
 import { User } from "./entities/User";
 import { UserNotification } from "./entities/UserNotification";
 import { Vote } from "./entities/Vote";
@@ -47,6 +51,7 @@ import { ClubEventResolver } from "./resolvers/event";
 import { EventHistoryResolver } from "./resolvers/eventHistory";
 import { FollowingResolver } from "./resolvers/following";
 import { FriendResolver } from "./resolvers/friend";
+import { GameResolver } from "./resolvers/game";
 import { GreetingResolver } from "./resolvers/greeting";
 import { MessageResolver } from "./resolvers/message";
 import { NotificationResolver } from "./resolvers/notification";
@@ -55,6 +60,7 @@ import { ProfileResolver } from "./resolvers/profile";
 import { RatingResolver } from "./resolvers/rating";
 import { RatingCandidateResolver } from "./resolvers/ratingCandidate";
 import { RatingVoteResolver } from "./resolvers/ratingVote";
+import { RoundResolver } from "./resolvers/round";
 import { UserResolver } from "./resolvers/user";
 import { VoteResolver } from "./resolvers/vote";
 import adminRefreshTokenRouter from "./routes/adminRefreshTokenRouter";
@@ -108,6 +114,10 @@ const main = async () => {
       RatingCandidate,
       RatingVote,
       ClubNote,
+      Game,
+      Score,
+      Round,
+      Player,
     ],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
@@ -161,6 +171,8 @@ const main = async () => {
       RatingVoteResolver,
       ClubNoteResolver,
       EventHistoryResolver,
+      GameResolver,
+      RoundResolver,
     ],
   });
   const wsServer = new WebSocketServer({

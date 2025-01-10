@@ -206,6 +206,15 @@ export class VoteResolver {
       const realLimit = limit || 50;
       const realOffset = offset || 0;
 
+      // Count total matching votes
+      const totalCount = await Vote.count({
+        relations: ["member"],
+        where: {
+          member: { profileId: user.profileId },
+          status: 1,
+        },
+      });
+
       const findOptions: FindManyOptions<Vote> = {
         order: {
           createdAt: "DESC",
@@ -221,9 +230,12 @@ export class VoteResolver {
 
       const votes = await Vote.find(findOptions);
 
+      // Check if there are more records
+      const hasMore = realOffset + realLimit < totalCount;
+
       return {
-        totalCount: votes.length,
-        hasMore: false,
+        totalCount,
+        hasMore,
         results: votes,
       };
     } catch (error) {
@@ -680,7 +692,7 @@ export class VoteResolver {
             message: "Vote deleted.",
           };
         }
-        
+
         await updateConfirmedVote(
           currentAvailableSlots,
           foundWaitingVotes,
