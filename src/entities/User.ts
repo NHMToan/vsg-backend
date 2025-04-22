@@ -48,10 +48,11 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   profileId: string;
 
-  @OneToOne(() => Profile, (details) => details.user, {
-    cascade: ["insert"],
+  @OneToOne(() => Profile, (profile) => profile.user, {
+    cascade: true,
+    onDelete: "SET NULL",
   })
-  @JoinColumn()
+  @JoinColumn({ name: "profileId" })
   profile: Profile;
 
   @Field(() => [Post])

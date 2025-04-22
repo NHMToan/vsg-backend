@@ -113,24 +113,30 @@ export class Profile extends BaseEntity {
   @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
 
-  @OneToOne((_type) => User, (user) => user.profile, {
-    cascade: true,
-  })
+  @OneToOne(() => User, (user) => user.profile)
   user: User;
 
   @Field((_type) => [Following])
-  @OneToMany((_type) => Following, (follow) => follow.follower)
+  @OneToMany((_type) => Following, (follow) => follow.follower, {
+    cascade: ["remove"],
+  })
   followings: Following[];
 
   @Field((_type) => [Following])
-  @OneToMany((_type) => Following, (follow) => follow.followedTo)
+  @OneToMany((_type) => Following, (follow) => follow.followedTo, {
+    cascade: ["remove"],
+  })
   followers: Following[];
 
   @Field((_type) => [Friendship])
-  @OneToMany((_type) => Friendship, (friend) => friend.sender)
+  @OneToMany((_type) => Friendship, (friend) => friend.sender, {
+    cascade: ["remove"],
+  })
   friends: Friendship[];
 
   @Field((_type) => [Conversation])
-  @ManyToMany((_) => Conversation, (con) => con.members)
+  @ManyToMany((_) => Conversation, (con) => con.members, {
+    cascade: ["remove"],
+  })
   conversations: Conversation[];
 }
